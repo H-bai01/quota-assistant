@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install macOS universal targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm test
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 额度助手 v__VERSION__
+          releaseBody: |
+            ## 额度助手
+
+            - 同时监控 Codex 与 Claude 的 5 小时和周额度。
+            - 支持 Claude 独立登录、双平台轮播、环境诊断和本地隐私保护。
+            - 支持悬浮窗、边缘吸附、托盘与开机启动。
+
+            此版本为本地优先工具，不包含遥测，也不会保存 Codex 令牌或 Claude Cookie。
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

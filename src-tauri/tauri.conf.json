@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "额度助手",
+  "version": "0.1.0",
+  "identifier": "app.quotaassistant.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "widget",
+        "title": "额度助手",
+        "width": 88,
+        "height": 88,
+        "minWidth": 88,
+        "minHeight": 88,
+        "maxWidth": 328,
+        "maxHeight": 328,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": "#00000000",
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "label": "diagnostics",
+        "title": "额度助手 · 环境诊断",
+        "url": "index.html?diagnostics",
+        "width": 520,
+        "height": 610,
+        "minWidth": 460,
+        "minHeight": 520,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "visible": false
+      }
+    ],
+    "security": { "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:" }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": false,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Codex 与 Claude 额度悬浮监控",
+    "longDescription": "本地优先的 Codex 与 Claude 额度悬浮监控工具。",
+    "copyright": "Copyright Quota Float and Quota Assistant contributors",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+  }
+}
