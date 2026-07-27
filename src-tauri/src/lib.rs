@@ -1257,7 +1257,7 @@ pub fn run() {
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(12))
                 .redirect(reqwest::redirect::Policy::none())
-                .user_agent("QuotaAssistant/0.1.0")
+                .user_agent("QuotaAssistant/0.2.0")
                 .build()
                 .expect("static HTTP client configuration must be valid");
             app.manage(AppState {

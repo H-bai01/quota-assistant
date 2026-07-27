@@ -1,4 +1,4 @@
-# Quota Float 0.1.0
+# 额度助手 0.2.0
 
 Quota Float is a lightweight floating desktop widget for checking Codex quota from the local Codex Desktop login state.
 
