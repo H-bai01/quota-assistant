@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { currentMonitor, getCurrentWindow } from "@tauri-apps/api/window";
+import { currentMonitor } from "@tauri-apps/api/window";
 import type { DiagnosticsReport, EnvironmentStatus, ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
 const defaultPreferences: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
@@ -37,6 +37,7 @@ const mockSubscriptions: SubscriptionSnapshot[] = [
 ];
 
 let widgetTransition: Promise<void> = Promise.resolve();
+let compactDragTransition: Promise<void> = Promise.resolve();
 
 function enqueueWidgetTransition(operation: () => Promise<void>): Promise<void> {
   const next = widgetTransition.then(operation, operation);
@@ -113,28 +114,37 @@ export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<WidgetPrefer
 
 export async function startDragging(): Promise<boolean> {
   if (!isTauri()) return false;
-  const currentWindow = getCurrentWindow();
   await invoke("start_widget_drag");
-  let previous = await currentWindow.outerPosition();
-  let stableTicks = 0;
-  let attempts = 0;
-  return new Promise<boolean>((resolve) => {
-    const finish = (finishWhenStable: number) => {
-      window.clearInterval(finishWhenStable);
-      void invoke<boolean>("finish_widget_drag").then(resolve).catch(() => resolve(true));
-    };
-    const finishWhenStable = window.setInterval(() => {
-      void currentWindow.outerPosition()
-        .then((next) => {
-          attempts += 1;
-          const stable = Math.abs(next.x - previous.x) <= 1 && Math.abs(next.y - previous.y) <= 1;
-          stableTicks = stable ? stableTicks + 1 : 0;
-          previous = next;
-          if (stableTicks >= 3 || attempts >= 25) finish(finishWhenStable);
-        })
-        .catch(() => finish(finishWhenStable));
-    }, 80);
-  });
+  // Give the native macOS drag loop time to take ownership of the mouse-down
+  // event before checking for release.
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 60));
+  for (let attempts = 0; attempts < 3_000; attempts += 1) {
+    if (!await invoke<boolean>("is_primary_mouse_button_pressed")) break;
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 40));
+  }
+  // macOS can report the button release one frame before the window's final
+  // outer position is committed. Wait for that coordinate update so a drag is
+  // never misclassified as a click.
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 100));
+  return invoke<boolean>("finish_widget_drag");
+}
+
+export function beginCompactDragging(): Promise<void> {
+  if (!isTauri()) return Promise.resolve();
+  compactDragTransition = invoke<void>("begin_compact_drag");
+  return compactDragTransition;
+}
+
+export function moveCompactDragging(deltaX: number, deltaY: number): Promise<void> {
+  if (!isTauri()) return Promise.resolve();
+  const move = () => invoke<void>("move_compact_drag", { deltaX, deltaY });
+  compactDragTransition = compactDragTransition.then(move, move);
+  return compactDragTransition;
+}
+
+export function finishCompactDragging(): Promise<boolean> {
+  if (!isTauri()) return Promise.resolve(false);
+  return compactDragTransition.then(() => invoke<boolean>("finish_widget_drag"));
 }
 
 export function setWidgetExpanded(expanded: boolean): Promise<void> {

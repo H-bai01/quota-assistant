@@ -1,4 +1,9 @@
-# 额度助手 0.2.0
+# 额度助手 0.2.1
+
+## 0.2.1 changes
+
+- Rebuilt compact-window dragging to follow pointer movement directly, preventing rollback and accidental expansion.
+- Reduced the compact widget from 152×152 to 120×88 and tightened icon, type, spacing, and edge snapping.
 
 Quota Float is a lightweight floating desktop widget for checking Codex quota from the local Codex Desktop login state.
 

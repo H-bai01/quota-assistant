@@ -25,7 +25,9 @@ interface DashboardProps {
 interface SummaryProps {
   snapshots: ProviderSnapshot[];
   language: Language;
-  onDrag: () => Promise<boolean>;
+  onDragStart: () => Promise<void>;
+  onDragMove: (deltaX: number, deltaY: number) => Promise<void>;
+  onDragEnd: () => Promise<boolean>;
   onExpand: () => void;
 }
 
@@ -175,9 +177,10 @@ const ServiceSummaryRow = memo(function ServiceSummaryRow({ snapshot, provider }
   );
 });
 
-export const QuotaSummary = memo(function QuotaSummary({ snapshots, onDrag, onExpand }: SummaryProps) {
+export const QuotaSummary = memo(function QuotaSummary({ snapshots, onDragStart, onDragMove, onDragEnd, onExpand }: SummaryProps) {
   const [idle, setIdle] = useState(false);
   const idleTimer = useRef<number | null>(null);
+  const drag = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(null);
 
   const scheduleIdle = () => {
     if (idleTimer.current !== null) window.clearTimeout(idleTimer.current);
@@ -200,12 +203,43 @@ export const QuotaSummary = memo(function QuotaSummary({ snapshots, onDrag, onEx
     scheduleIdle();
   };
 
-  const handleMouseDown = (event: React.MouseEvent<HTMLElement>) => {
-    if (event.button !== 0) return;
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || drag.current) return;
     event.preventDefault();
-    void onDrag().then((moved) => {
-      if (!moved) onExpand();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    drag.current = { pointerId: event.pointerId, startX: event.screenX, startY: event.screenY, moved: false };
+    void onDragStart().catch(() => { drag.current = null; });
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const active = drag.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    const deltaX = event.screenX - active.startX;
+    const deltaY = event.screenY - active.startY;
+    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) active.moved = true;
+    if (active.moved) void onDragMove(deltaX, deltaY).catch(() => undefined);
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLElement>) => {
+    const active = drag.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    drag.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+    const deltaX = event.screenX - active.startX;
+    const deltaY = event.screenY - active.startY;
+    const finish = active.moved ? onDragMove(deltaX, deltaY) : Promise.resolve();
+    void finish.then(onDragEnd).then((moved) => {
+      if (!moved && !active.moved) onExpand();
     }).catch(() => undefined);
+  };
+
+  const handlePointerCancel = (event: React.PointerEvent<HTMLElement>) => {
+    const active = drag.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    drag.current = null;
+    void onDragEnd().catch(() => undefined);
   };
 
   return (
@@ -213,7 +247,10 @@ export const QuotaSummary = memo(function QuotaSummary({ snapshots, onDrag, onEx
       className={`quota-summary${idle ? " quota-summary--idle" : ""}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

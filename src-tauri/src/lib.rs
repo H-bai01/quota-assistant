@@ -27,12 +27,20 @@ use tauri::{
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_window_state::Builder as WindowStateBuilder;
 
-const COLLAPSED_LOGICAL_SIZE: f64 = 144.0;
+const COLLAPSED_LOGICAL_WIDTH: f64 = 112.0;
+const COLLAPSED_LOGICAL_HEIGHT: f64 = 80.0;
 const EXPANDED_LOGICAL_SIZE: f64 = 480.0;
 const EDGE_SAFE_INSET_LOGICAL: f64 = 4.0;
-const SNAP_THRESHOLD_LOGICAL: f64 = 24.0;
+const SNAP_THRESHOLD_LOGICAL: f64 = 8.0;
 const CLICK_MOVE_THRESHOLD_LOGICAL: f64 = 4.0;
+const CLICK_MAX_DURATION: Duration = Duration::from_millis(220);
 const POSITION_EPSILON: u32 = 2;
+
+#[cfg(target_os = "macos")]
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {
+    fn CGEventSourceButtonState(state_id: i32, button: u32) -> bool;
+}
 
 #[derive(Clone, Copy)]
 enum HorizontalDock {
@@ -111,6 +119,7 @@ struct AppState {
     geometry: Mutex<Option<WidgetGeometryState>>,
     drag_mode: Mutex<Option<WidgetMode>>,
     drag_origin: Mutex<Option<PhysicalPosition<i32>>>,
+    drag_started: Mutex<Option<Instant>>,
 }
 
 fn apply_short_window_test_override(
@@ -525,6 +534,13 @@ fn infer_mode(rect: WidgetRect, collapsed_size: PhysicalSize<u32>) -> WidgetMode
     }
 }
 
+fn collapsed_window_size(scale_factor: f64, safe_inset: u32) -> PhysicalSize<u32> {
+    PhysicalSize::new(
+        widget_window_size(COLLAPSED_LOGICAL_WIDTH, scale_factor, safe_inset),
+        widget_window_size(COLLAPSED_LOGICAL_HEIGHT, scale_factor, safe_inset),
+    )
+}
+
 #[tauri::command]
 fn expand_widget(
     work_area: Option<WorkAreaPayload>,
@@ -537,10 +553,7 @@ fn expand_widget(
     let current = current_widget_rect(&window)?;
     let (monitor, scale_factor) = monitor_and_scale(&window)?;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
-    let collapsed_size = PhysicalSize::new(
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-    );
+    let collapsed_size = collapsed_window_size(scale_factor, safe_inset);
     let expanded_size = PhysicalSize::new(
         widget_window_size(EXPANDED_LOGICAL_SIZE, scale_factor, safe_inset),
         widget_window_size(EXPANDED_LOGICAL_SIZE, scale_factor, safe_inset),
@@ -606,6 +619,7 @@ mod geometry_tests {
     fn window_size_includes_the_transparent_safe_inset() {
         assert_eq!(window_size_for_visual_size(80, 4), 88);
         assert_eq!(widget_window_size(320.0, 1.5, 6), 492);
+        assert_eq!(collapsed_window_size(1.0, 4), PhysicalSize::new(120, 88));
     }
 
     #[test]
@@ -662,10 +676,7 @@ fn collapse_widget(app: AppHandle, state: State<'_, AppState>) -> Result<(), Str
     let current = current_widget_rect(&window)?;
     let (monitor, scale_factor) = monitor_and_scale(&window)?;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
-    let collapsed_size = PhysicalSize::new(
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-    );
+    let collapsed_size = collapsed_window_size(scale_factor, safe_inset);
     let Some(monitor) = monitor else {
         window
             .set_size(collapsed_size)
@@ -725,10 +736,7 @@ fn start_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), S
     let current = current_widget_rect(&window)?;
     let (_, scale_factor) = monitor_and_scale(&window)?;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
-    let collapsed_size = PhysicalSize::new(
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-    );
+    let collapsed_size = collapsed_window_size(scale_factor, safe_inset);
     let mode = state
         .geometry
         .lock()
@@ -742,9 +750,73 @@ fn start_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), S
     if let Ok(mut drag_origin) = state.drag_origin.lock() {
         *drag_origin = Some(current.position);
     }
+    if let Ok(mut drag_started) = state.drag_started.lock() {
+        *drag_started = Some(Instant::now());
+    }
     window
         .start_dragging()
         .map_err(|_| "failed to start widget drag".to_string())
+}
+
+#[tauri::command]
+fn begin_compact_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    let window = app
+        .get_webview_window("widget")
+        .ok_or_else(|| "widget window missing".to_string())?;
+    let current = current_widget_rect(&window)?;
+    if let Ok(mut drag_mode) = state.drag_mode.lock() {
+        *drag_mode = Some(WidgetMode::Collapsed);
+    }
+    if let Ok(mut drag_origin) = state.drag_origin.lock() {
+        *drag_origin = Some(current.position);
+    }
+    if let Ok(mut drag_started) = state.drag_started.lock() {
+        *drag_started = Some(Instant::now());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn move_compact_drag(
+    delta_x: f64,
+    delta_y: f64,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let window = app
+        .get_webview_window("widget")
+        .ok_or_else(|| "widget window missing".to_string())?;
+    let origin = state
+        .drag_origin
+        .lock()
+        .ok()
+        .and_then(|value| *value)
+        .ok_or_else(|| "widget drag has not started".to_string())?;
+    let scale_factor = window.scale_factor().unwrap_or(1.0);
+    let next_position = PhysicalPosition::new(
+        origin
+            .x
+            .saturating_add((delta_x * scale_factor).round() as i32),
+        origin
+            .y
+            .saturating_add((delta_y * scale_factor).round() as i32),
+    );
+    window
+        .set_position(next_position)
+        .map_err(|_| "failed to move widget".to_string())
+}
+
+#[tauri::command]
+fn is_primary_mouse_button_pressed() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        // Combined session state (0), primary button (0). This reads only the
+        // current button state and does not require Accessibility permission.
+        return unsafe { CGEventSourceButtonState(0, 0) };
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    false
 }
 
 #[tauri::command]
@@ -759,22 +831,27 @@ fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<bool
         .lock()
         .ok()
         .and_then(|mut value| value.take());
+    let was_long_press = state
+        .drag_started
+        .lock()
+        .ok()
+        .and_then(|mut value| value.take())
+        .map(|started| started.elapsed() >= CLICK_MAX_DURATION)
+        .unwrap_or(false);
     let click_move_threshold = logical_to_physical(CLICK_MOVE_THRESHOLD_LOGICAL, scale_factor);
-    let moved = drag_origin
-        .map(|origin| {
-            origin.x.abs_diff(current.position.x) > click_move_threshold
-                || origin.y.abs_diff(current.position.y) > click_move_threshold
-        })
-        .unwrap_or(true);
+    let moved = was_long_press
+        || drag_origin
+            .map(|origin| {
+                origin.x.abs_diff(current.position.x) > click_move_threshold
+                    || origin.y.abs_diff(current.position.y) > click_move_threshold
+            })
+            .unwrap_or(true);
     let Some(monitor) = monitor else {
         return Ok(moved);
     };
     let threshold = logical_to_physical(SNAP_THRESHOLD_LOGICAL, scale_factor) as i32;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
-    let collapsed_size = PhysicalSize::new(
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-        widget_window_size(COLLAPSED_LOGICAL_SIZE, scale_factor, safe_inset),
-    );
+    let collapsed_size = collapsed_window_size(scale_factor, safe_inset);
     let expanded_size = PhysicalSize::new(
         widget_window_size(EXPANDED_LOGICAL_SIZE, scale_factor, safe_inset),
         widget_window_size(EXPANDED_LOGICAL_SIZE, scale_factor, safe_inset),
@@ -1274,6 +1351,7 @@ pub fn run() {
                 geometry: Mutex::new(None),
                 drag_mode: Mutex::new(None),
                 drag_origin: Mutex::new(None),
+                drag_started: Mutex::new(None),
             });
             if let Err(error) = claude_auth::ensure_auth_window(app.handle()) {
                 eprintln!("Claude auth initialization failed: {error}");
@@ -1298,13 +1376,14 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("widget") {
                 let scale_factor = window.scale_factor().unwrap_or(1.0);
                 let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
-                let visual_size = if preferences.stay_expanded {
-                    EXPANDED_LOGICAL_SIZE
+                let startup_size = if preferences.stay_expanded {
+                    let expanded =
+                        widget_window_size(EXPANDED_LOGICAL_SIZE, scale_factor, safe_inset);
+                    PhysicalSize::new(expanded, expanded)
                 } else {
-                    COLLAPSED_LOGICAL_SIZE
+                    collapsed_window_size(scale_factor, safe_inset)
                 };
-                let startup_size = widget_window_size(visual_size, scale_factor, safe_inset);
-                let _ = window.set_size(PhysicalSize::new(startup_size, startup_size));
+                let _ = window.set_size(startup_size);
                 let _ = window.set_always_on_top(preferences.always_on_top);
                 #[cfg(debug_assertions)]
                 {
@@ -1333,6 +1412,9 @@ pub fn run() {
             expand_widget,
             collapse_widget,
             start_widget_drag,
+            begin_compact_drag,
+            move_compact_drag,
+            is_primary_mouse_button_pressed,
             finish_widget_drag,
             get_preferences,
             set_preferences,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QuotaOverview, QuotaSummary } from "./components/QuotaDashboard";
-import { connectClaude, fetchSnapshots, getPreferences, getSubscriptions, listenDesktopEvents, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
+import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
 import { needsFastRefresh } from "./lib/format";
 import { checkForAppUpdate } from "./lib/appUpdate";
 import { copy, nextLanguage, normalizeLanguage } from "./lib/i18n";
@@ -213,7 +213,7 @@ export default function App() {
   if (snapshots.length === 0) return <div className="loading-card" aria-label={t.loadingQuota}><span /><span /><span /></div>;
 
   if (compact) {
-    return <QuotaSummary snapshots={snapshots} language={language} onDrag={() => startDragging()} onExpand={() => handleHover(true)} />;
+    return <QuotaSummary snapshots={snapshots} language={language} onDragStart={beginCompactDragging} onDragMove={moveCompactDragging} onDragEnd={finishCompactDragging} onExpand={() => handleHover(true)} />;
   }
 
   return (

@@ -205,20 +205,21 @@ button { font: inherit; }
 .quota-summary {
   display: grid;
   align-content: center;
-  gap: 7px;
-  padding: 18px 24px;
-  border-radius: 44px;
+  gap: 5px;
+  padding: 11px 13px;
+  border-radius: 28px;
   cursor: grab;
+  touch-action: none;
   transition: opacity .25s ease, background-color .25s ease;
 }
 
 .quota-summary:active { cursor: grabbing; }
 
 .quota-summary--idle { opacity: .76; background: rgba(237,243,248,.7); }
-.summary-service { display: grid; grid-template-columns: 27px 1fr; align-items: center; gap: 11px; min-height: 25px; pointer-events: none; }
+.summary-service { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; min-height: 22px; pointer-events: none; }
 .summary-service .dashboard-percent { justify-self: end; }
-.summary-service .dashboard-percent b { font-size: 26px; font-weight: 620; letter-spacing: -.045em; }
-.summary-service .dashboard-percent small { margin: 0 0 2px 2px; font-size: 11px; }
+.summary-service .dashboard-percent b { font-size: 22px; font-weight: 620; letter-spacing: -.045em; }
+.summary-service .dashboard-percent small { margin: 0 0 2px 1px; font-size: 9px; }
 .summary-service--unavailable { opacity: .52; }
 
 .service-icon {
@@ -231,7 +232,7 @@ button { font: inherit; }
   pointer-events: none;
   -webkit-user-drag: none;
 }
-.service-icon--compact { width: 27px; height: 27px; border-radius: 8px; }
+.service-icon--compact { width: 22px; height: 22px; border-radius: 7px; }
 
 .quota-overview {
   min-width: 480px;
