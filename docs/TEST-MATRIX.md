@@ -8,6 +8,10 @@
 | 数据 | 变形或缺字段响应 | 不崩溃，不显示虚假额度 | 解析器单元测试覆盖，待集成验证 |
 | 登录态 | Windows `CODEX_HOME` 或用户目录 `.codex/auth.json` | 可以读取本机 Codex 登录态 | 待 Windows 实机验证 |
 | 登录态 | macOS `CODEX_HOME` 或 `~/.codex/auth.json` | 可以读取本机 Codex 登录态 | 待 macOS 实机验证 |
+| 订阅 | Apple 账号登录与双重认证 | 使用独立官方登录窗口，不读取密码或验证码 | macOS 实机通过 |
+| 订阅 | ChatGPT 与 Claude 同一 Apple 账号订阅 | 读取套餐及续期日期并写回主界面 | macOS 实机通过：均为 8 月 8 日续期 |
+| 订阅 | Apple 会话失效 | 保留上次确认日期；到期前 1 天复核失败时提示登录 | macOS 实机通过 |
+| 订阅 | 错误 Apple 账号 | 可退出应用内账号并改用其他 Apple 账号，不影响 Mac 系统账号 | macOS 实机通过 |
 | 窗口 | 拖动、锁定、鼠标穿透 | 锁定后不拦截编辑器输入，托盘可解锁 | 待 Windows/macOS 验证 |
 | 窗口 | 多显示器、缩放、移除显示器 | 恢复到可见工作区 | 依赖 window-state 插件，待实机验证 |
 | 托盘 | Windows 托盘菜单 | 显示/隐藏、刷新、解锁、固定、语言切换、开机启动、退出可用 | 待 Windows 实机验证 |
@@ -27,4 +31,5 @@
 - Windows 和 macOS CI bundle artifact 成功生成。
 - Windows 实机完成安装、启动、托盘、拖动、锁定、语言切换、退出验证。
 - macOS 实机完成首次打开、菜单栏托盘、透明悬浮窗、展开/收起、拖动、置顶、读取 `~/.codex/auth.json` 验证。
+- macOS 实机完成 Apple 订阅登录、正确账号切换、日期缓存与登录失效降级验证。
 - 严重和高风险问题清零。

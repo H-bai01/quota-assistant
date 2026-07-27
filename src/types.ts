@@ -1,6 +1,8 @@
 export type ProviderId = "codex" | "claude";
 export type SnapshotStatus = "ok" | "stale" | "loading" | "unavailable" | "signed_out";
 export type Language = "zh-CN" | "en";
+export type BillingSource = "apple" | "google" | "web" | "unknown";
+export type SubscriptionStatus = "ready" | "loading" | "needs_service_login" | "needs_billing_login" | "unsupported" | "unavailable";
 
 export interface UsageWindow {
   remainingPercent: number;
@@ -20,6 +22,20 @@ export interface ProviderSnapshot {
   updatedAt: string;
   status: SnapshotStatus;
   message: string | null;
+}
+
+export interface SubscriptionSnapshot {
+  provider: ProviderId;
+  displayName: string;
+  plan: string | null;
+  billingSource: BillingSource;
+  cycle: "monthly" | "yearly" | null;
+  renewsAt: string | null;
+  renewalLabel: string | null;
+  remainingDays: number | null;
+  status: SubscriptionStatus;
+  message: string | null;
+  updatedAt: string;
 }
 
 export interface EnvironmentStatus {

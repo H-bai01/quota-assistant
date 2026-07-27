@@ -46,6 +46,53 @@ impl ProviderSnapshot {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionSnapshot {
+    pub provider: String,
+    pub display_name: String,
+    pub plan: Option<String>,
+    pub billing_source: String,
+    pub cycle: Option<String>,
+    pub renews_at: Option<String>,
+    pub renewal_label: Option<String>,
+    pub remaining_days: Option<i64>,
+    pub status: String,
+    pub message: Option<String>,
+    pub updated_at: String,
+}
+
+impl SubscriptionSnapshot {
+    pub fn pending(provider: &str, display_name: &str, billing_source: &str) -> Self {
+        Self {
+            provider: provider.into(),
+            display_name: display_name.into(),
+            plan: None,
+            billing_source: billing_source.into(),
+            cycle: None,
+            renews_at: None,
+            renewal_label: None,
+            remaining_days: None,
+            status: "loading".into(),
+            message: None,
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        }
+    }
+
+    pub fn failure(
+        provider: &str,
+        display_name: &str,
+        billing_source: &str,
+        status: &str,
+        message: &str,
+    ) -> Self {
+        let mut value = Self::pending(provider, display_name, billing_source);
+        value.status = status.into();
+        value.message = Some(message.into());
+        value
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetPreferences {

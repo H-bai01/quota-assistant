@@ -3,6 +3,7 @@ mod claude_auth;
 mod codex;
 mod diagnostics;
 mod models;
+mod subscription;
 
 use std::{
     fs,
@@ -14,8 +15,10 @@ use std::{
 
 #[cfg(debug_assertions)]
 use models::UsageWindow;
-use models::{ProviderSnapshot, WidgetPreferences};
+use models::{ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences};
 use serde::Deserialize;
+#[cfg(debug_assertions)]
+use tauri::LogicalPosition;
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -24,10 +27,11 @@ use tauri::{
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_window_state::Builder as WindowStateBuilder;
 
-const COLLAPSED_LOGICAL_SIZE: f64 = 80.0;
-const EXPANDED_LOGICAL_SIZE: f64 = 320.0;
+const COLLAPSED_LOGICAL_SIZE: f64 = 144.0;
+const EXPANDED_LOGICAL_SIZE: f64 = 480.0;
 const EDGE_SAFE_INSET_LOGICAL: f64 = 4.0;
 const SNAP_THRESHOLD_LOGICAL: f64 = 24.0;
+const CLICK_MOVE_THRESHOLD_LOGICAL: f64 = 4.0;
 const POSITION_EPSILON: u32 = 2;
 
 #[derive(Clone, Copy)]
@@ -99,10 +103,14 @@ struct AppState {
     preferences_path: PathBuf,
     fetch_lock: tokio::sync::Mutex<()>,
     snapshot_cache: Mutex<Option<(Instant, Vec<ProviderSnapshot>)>>,
+    subscription_cache: Mutex<Vec<SubscriptionSnapshot>>,
+    subscription_path: PathBuf,
+    subscription_fetch_lock: tokio::sync::Mutex<()>,
     #[cfg(debug_assertions)]
     simulate_short_window_for_testing: Mutex<bool>,
     geometry: Mutex<Option<WidgetGeometryState>>,
     drag_mode: Mutex<Option<WidgetMode>>,
+    drag_origin: Mutex<Option<PhysicalPosition<i32>>>,
 }
 
 fn apply_short_window_test_override(
@@ -710,7 +718,7 @@ fn collapse_widget(app: AppHandle, state: State<'_, AppState>) -> Result<(), Str
 }
 
 #[tauri::command]
-fn begin_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+fn start_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let window = app
         .get_webview_window("widget")
         .ok_or_else(|| "widget window missing".to_string())?;
@@ -731,18 +739,35 @@ fn begin_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), S
     if let Ok(mut drag_mode) = state.drag_mode.lock() {
         *drag_mode = Some(mode);
     }
-    Ok(())
+    if let Ok(mut drag_origin) = state.drag_origin.lock() {
+        *drag_origin = Some(current.position);
+    }
+    window
+        .start_dragging()
+        .map_err(|_| "failed to start widget drag".to_string())
 }
 
 #[tauri::command]
-fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<bool, String> {
     let window = app
         .get_webview_window("widget")
         .ok_or_else(|| "widget window missing".to_string())?;
     let current = current_widget_rect(&window)?;
     let (monitor, scale_factor) = monitor_and_scale(&window)?;
+    let drag_origin = state
+        .drag_origin
+        .lock()
+        .ok()
+        .and_then(|mut value| value.take());
+    let click_move_threshold = logical_to_physical(CLICK_MOVE_THRESHOLD_LOGICAL, scale_factor);
+    let moved = drag_origin
+        .map(|origin| {
+            origin.x.abs_diff(current.position.x) > click_move_threshold
+                || origin.y.abs_diff(current.position.y) > click_move_threshold
+        })
+        .unwrap_or(true);
     let Some(monitor) = monitor else {
-        return Ok(());
+        return Ok(moved);
     };
     let threshold = logical_to_physical(SNAP_THRESHOLD_LOGICAL, scale_factor) as i32;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
@@ -835,7 +860,7 @@ fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<(), 
             }
         }
     }
-    Ok(())
+    Ok(moved)
 }
 
 #[tauri::command]
@@ -1226,7 +1251,9 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_config_dir()?;
             let preferences_path = data_dir.join("preferences.json");
+            let subscription_path = data_dir.join("subscriptions.json");
             let preferences = load_preferences(&preferences_path);
+            let subscription_cache = subscription::load_cache(&subscription_path);
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(12))
                 .redirect(reqwest::redirect::Policy::none())
@@ -1239,10 +1266,14 @@ pub fn run() {
                 preferences_path,
                 fetch_lock: tokio::sync::Mutex::new(()),
                 snapshot_cache: Mutex::new(None),
+                subscription_cache: Mutex::new(subscription_cache),
+                subscription_path,
+                subscription_fetch_lock: tokio::sync::Mutex::new(()),
                 #[cfg(debug_assertions)]
                 simulate_short_window_for_testing: Mutex::new(false),
                 geometry: Mutex::new(None),
                 drag_mode: Mutex::new(None),
+                drag_origin: Mutex::new(None),
             });
             if let Err(error) = claude_auth::ensure_auth_window(app.handle()) {
                 eprintln!("Claude auth initialization failed: {error}");
@@ -1256,8 +1287,43 @@ pub fn run() {
             if preferences.locked {
                 let _ = apply_lock(app.handle(), true);
             }
+            #[cfg(all(debug_assertions, target_os = "macos"))]
+            {
+                // A cargo-run process is not launched through a normal .app bundle. Keep the
+                // development build in the regular macOS app layer so its window is discoverable.
+                let _ = app
+                    .handle()
+                    .set_activation_policy(tauri::ActivationPolicy::Regular);
+            }
             if let Some(window) = app.get_webview_window("widget") {
+                let scale_factor = window.scale_factor().unwrap_or(1.0);
+                let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
+                let visual_size = if preferences.stay_expanded {
+                    EXPANDED_LOGICAL_SIZE
+                } else {
+                    COLLAPSED_LOGICAL_SIZE
+                };
+                let startup_size = widget_window_size(visual_size, scale_factor, safe_inset);
+                let _ = window.set_size(PhysicalSize::new(startup_size, startup_size));
                 let _ = window.set_always_on_top(preferences.always_on_top);
+                #[cfg(debug_assertions)]
+                {
+                    // Development runs should always be immediately discoverable, even when a
+                    // packaged build previously saved a position on another display or Space.
+                    let _ = window.set_position(LogicalPosition::new(80.0, 80.0));
+                    let _ = window.set_visible_on_all_workspaces(true);
+                    let _ = window.set_skip_taskbar(false);
+                    let _ = window.set_always_on_top(true);
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                    eprintln!(
+                        "development widget: visible={:?}, focused={:?}, position={:?}, size={:?}",
+                        window.is_visible(),
+                        window.is_focused(),
+                        window.outer_position(),
+                        window.outer_size()
+                    );
+                }
             }
             Ok(())
         })
@@ -1266,7 +1332,7 @@ pub fn run() {
             refresh_snapshots,
             expand_widget,
             collapse_widget,
-            begin_widget_drag,
+            start_widget_drag,
             finish_widget_drag,
             get_preferences,
             set_preferences,
@@ -1274,6 +1340,9 @@ pub fn run() {
             set_widget_always_on_top,
             claude_auth::connect_claude,
             claude_auth::disconnect_claude,
+            subscription::get_subscriptions,
+            subscription::refresh_subscriptions,
+            subscription::open_subscription_login,
             diagnostics::get_environment_status,
             diagnostics::get_diagnostics_report,
             diagnostics::copy_diagnostics_report

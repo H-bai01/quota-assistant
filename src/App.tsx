@@ -1,27 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { QuotaCard, QuotaOrb } from "./components/QuotaCard";
-import { connectClaude, fetchSnapshots, getPreferences, listenDesktopEvents, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
+import { QuotaOverview, QuotaSummary } from "./components/QuotaDashboard";
+import { connectClaude, fetchSnapshots, getPreferences, getSubscriptions, listenDesktopEvents, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
 import { needsFastRefresh } from "./lib/format";
 import { checkForAppUpdate } from "./lib/appUpdate";
-import { copy, normalizeLanguage } from "./lib/i18n";
+import { copy, nextLanguage, normalizeLanguage } from "./lib/i18n";
 import { mergeSnapshots } from "./lib/snapshots";
-import type { ProviderSnapshot, WidgetPreferences } from "./types";
+import type { ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "./types";
 
 const DEFAULT_PREFS: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
 
 export default function App() {
   const [snapshots, setSnapshots] = useState<ProviderSnapshot[]>([]);
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [hovered, setHovered] = useState(false);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionSnapshot[]>([]);
+  const [subscriptionBusy, setSubscriptionBusy] = useState(false);
+  const [subscriptionAlert, setSubscriptionAlert] = useState<SubscriptionSnapshot[]>([]);
   const [compact, setCompact] = useState(true);
-  const [consumingProviders, setConsumingProviders] = useState<Set<string>>(() => new Set());
   const [operationError, setOperationError] = useState<string | null>(null);
   const failures = useRef(0);
-  const previousPrimary = useRef(new Map<string, number>());
-  const consumptionTimers = useRef(new Map<string, number>());
   const collapseTimer = useRef<number | null>(null);
   const hoverSequence = useRef(0);
+  const subscriptionRequest = useRef(0);
+  const subscriptionPolling = useRef<number | null>(null);
   const language = normalizeLanguage(preferences.language);
   const t = copy[language];
 
@@ -45,21 +45,6 @@ export default function App() {
       const hasFailure = values.some((item) => item.status !== "ok");
       if (hasFailure) failures.current += 1;
       else failures.current = 0;
-      for (const item of values) {
-        const nextPrimary = item.shortWindow?.remainingPercent;
-        const previous = previousPrimary.current.get(item.provider);
-        if (nextPrimary !== undefined && previous !== undefined && nextPrimary < previous) {
-          setConsumingProviders((current) => new Set(current).add(item.provider));
-          const oldTimer = consumptionTimers.current.get(item.provider);
-          if (oldTimer !== undefined) window.clearTimeout(oldTimer);
-          const timer = window.setTimeout(() => {
-            setConsumingProviders((current) => { const next = new Set(current); next.delete(item.provider); return next; });
-            consumptionTimers.current.delete(item.provider);
-          }, 5 * 60_000);
-          consumptionTimers.current.set(item.provider, timer);
-        }
-        if (nextPrimary !== undefined) previousPrimary.current.set(item.provider, nextPrimary);
-      }
       setSnapshots((current) => mergeSnapshots(current, values));
     } catch {
       failures.current += 1;
@@ -72,15 +57,59 @@ export default function App() {
     }
   }, []);
 
+  const recordSubscriptionAlerts = useCallback((values: SubscriptionSnapshot[]) => {
+    const alerts = values.filter((item) => {
+      if (!item.renewsAt || item.remainingDays === null || item.remainingDays > 1) return false;
+      if (item.status === "ready" && item.remainingDays >= 0) return false;
+      const key = `quota-assistant:subscription-alert:${item.provider}:${item.renewsAt}:${item.status}`;
+      try {
+        if (window.localStorage.getItem(key)) return false;
+        window.localStorage.setItem(key, new Date().toISOString());
+      } catch {
+        // A disabled local store should not block the reminder itself.
+      }
+      return true;
+    });
+    if (alerts.length > 0) setSubscriptionAlert(alerts);
+  }, []);
+
+  const refreshSubscriptionInfo = useCallback(async (showFailure = true) => {
+    const request = ++subscriptionRequest.current;
+    setSubscriptionBusy(true);
+    try {
+      const timeout = new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("timeout")), 50_000));
+      const values = await Promise.race([refreshSubscriptions(), timeout]);
+      if (request !== subscriptionRequest.current) return values;
+      setSubscriptions(values);
+      recordSubscriptionAlerts(values);
+      return values;
+    } catch {
+      if (showFailure && request === subscriptionRequest.current) setOperationError("订阅信息确认超时，请重试或重新登录。");
+      return null;
+    } finally {
+      if (request === subscriptionRequest.current) setSubscriptionBusy(false);
+    }
+  }, [recordSubscriptionAlerts]);
+
   useEffect(() => {
     void refresh(true);
     void getPreferences().then((value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) })).catch(() => setOperationError("Unable to read settings. Defaults are in use."));
+    void getSubscriptions().then((values) => {
+      setSubscriptions(values);
+      if (values.some((item) => item.renewsAt && item.remainingDays !== null && item.remainingDays <= 1)) void refreshSubscriptionInfo(false);
+    }).catch(() => undefined);
     return () => {
-      for (const timer of consumptionTimers.current.values()) window.clearTimeout(timer);
-      consumptionTimers.current.clear();
       if (collapseTimer.current !== null) window.clearTimeout(collapseTimer.current);
+      if (subscriptionPolling.current !== null) window.clearTimeout(subscriptionPolling.current);
     };
-  }, [refresh]);
+  }, [refresh, refreshSubscriptionInfo]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (subscriptions.some((item) => item.renewsAt && item.remainingDays !== null && item.remainingDays <= 1)) void refreshSubscriptionInfo(false);
+    }, 6 * 60 * 60_000);
+    return () => window.clearInterval(id);
+  }, [refreshSubscriptionInfo, subscriptions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,16 +146,6 @@ export default function App() {
     };
   }, [refresh]);
 
-  useEffect(() => {
-    if (hovered || preferences.pinnedProvider || snapshots.length < 2) return;
-    const id = window.setInterval(() => setActiveIndex((value) => (value + 1) % snapshots.length), preferences.autoRotateSeconds * 1000);
-    return () => window.clearInterval(id);
-  }, [hovered, preferences.autoRotateSeconds, preferences.pinnedProvider, snapshots.length]);
-
-  const current = preferences.pinnedProvider
-    ? snapshots.find((item) => item.provider === preferences.pinnedProvider) ?? snapshots[0]
-    : snapshots[activeIndex % Math.max(1, snapshots.length)];
-
   const savePreferences = useCallback((next: WidgetPreferences) => {
     const previous = preferences;
     setPreferences(next);
@@ -134,12 +153,36 @@ export default function App() {
     void updatePreferences(next).catch(() => { setPreferences(previous); setOperationError("Settings could not be saved. Previous state restored."); });
   }, [preferences]);
 
+  const handleSubscriptionLogin = useCallback((provider: ProviderId) => {
+    setOperationError(null);
+    if (subscriptionPolling.current !== null) {
+      window.clearTimeout(subscriptionPolling.current);
+      subscriptionPolling.current = null;
+    }
+    void openSubscriptionLogin(provider)
+      .then(() => {
+        const poll = async () => {
+          const values = await refreshSubscriptionInfo(false);
+          const item = values?.find((value) => value.provider === provider);
+          if (item?.status === "ready") {
+            subscriptionPolling.current = null;
+            return;
+          }
+          subscriptionPolling.current = window.setTimeout(() => void poll(), 8_000);
+        };
+        subscriptionPolling.current = window.setTimeout(() => void poll(), 5_000);
+      })
+      .catch(() => {
+        subscriptionPolling.current = null;
+        setOperationError("无法打开官方登录页面，请稍后重试。");
+      });
+  }, [refreshSubscriptionInfo]);
+
   const handleHover = useCallback((value: boolean) => {
     if (collapseTimer.current !== null) {
       window.clearTimeout(collapseTimer.current);
       collapseTimer.current = null;
     }
-    setHovered(value);
     if (!value && preferences.stayExpanded) return;
     if (value) void refresh(true);
     if (value) {
@@ -167,28 +210,41 @@ export default function App() {
     void setWidgetExpanded(true).catch(() => setOperationError("Widget expand failed."));
   }, [preferences.stayExpanded]);
 
-  if (!current) return <div className="loading-card" aria-label={t.loadingQuota}><span /><span /><span /></div>;
+  if (snapshots.length === 0) return <div className="loading-card" aria-label={t.loadingQuota}><span /><span /><span /></div>;
 
   if (compact) {
-    return <QuotaOrb snapshot={current} language={language} onDrag={() => startDragging()} onHover={handleHover} />;
+    return <QuotaSummary snapshots={snapshots} language={language} onDrag={() => startDragging()} onExpand={() => handleHover(true)} />;
   }
 
   return (
-    <QuotaCard
-      snapshot={current}
+    <>
+      <QuotaOverview
+      snapshots={snapshots}
+      subscriptions={subscriptions}
       preferences={preferences}
-      providerCount={snapshots.length}
-      onPrevious={() => setActiveIndex((value) => (value - 1 + snapshots.length) % snapshots.length)}
-      onNext={() => setActiveIndex((value) => (value + 1) % snapshots.length)}
-      onTogglePin={() => savePreferences({ ...preferences, pinnedProvider: preferences.pinnedProvider ? null : current.provider })}
       onToggleStayExpanded={() => savePreferences({ ...preferences, stayExpanded: !preferences.stayExpanded })}
-      onLock={() => { setOperationError(null); void setAlwaysOnTop(!preferences.alwaysOnTop).then((value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) })).catch(() => setOperationError("Always-on-top toggle failed.")); }}
+      onToggleLanguage={() => savePreferences({ ...preferences, language: nextLanguage(language) })}
+      onToggleAlwaysOnTop={() => { setOperationError(null); void setAlwaysOnTop(!preferences.alwaysOnTop).then((value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) })).catch(() => setOperationError("Always-on-top toggle failed.")); }}
       onDrag={() => startDragging()}
       onHover={handleHover}
       onRefresh={() => refresh(true)}
+      onRefreshSubscriptions={() => { setOperationError(null); void refreshSubscriptionInfo(true); }}
+      onOpenSubscriptionLogin={handleSubscriptionLogin}
       onConnectClaude={() => { setOperationError(null); void connectClaude().catch(() => setOperationError(t.claudeConnectFailed)); }}
-      isConsuming={consumingProviders.has(current.provider)}
+      subscriptionBusy={subscriptionBusy}
       notice={operationError}
-    />
+      />
+      {subscriptionAlert.length > 0 ? (
+        <div className="subscription-alert-backdrop" role="presentation">
+          <section className="subscription-alert" role="alertdialog" aria-modal="true" aria-label="订阅状态提醒">
+            <h2>订阅状态需要确认</h2>
+            {subscriptionAlert.map((item) => (
+              <p key={`${item.provider}:${item.renewsAt}`}><strong>{item.provider === "codex" ? "ChatGPT" : "Claude"}</strong><span>{item.message ?? item.renewalLabel ?? "暂时无法确认续订状态"}</span></p>
+            ))}
+            <button type="button" onClick={() => setSubscriptionAlert([])}>知道了</button>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }

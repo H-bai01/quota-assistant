@@ -11,9 +11,9 @@ const CREDITS_URL: &str = "https://chatgpt.com/backend-api/wham/rate-limit-reset
 const MAX_RESPONSE_BYTES: u64 = 1024 * 1024;
 const MAX_AUTH_BYTES: u64 = 256 * 1024;
 
-struct Auth {
-    access_token: String,
-    account_id: Option<String>,
+pub(crate) struct Auth {
+    pub(crate) access_token: String,
+    pub(crate) account_id: Option<String>,
 }
 
 fn auth_path() -> Option<PathBuf> {
@@ -41,7 +41,7 @@ fn account_id_from_jwt(token: &str) -> Option<String> {
     .map(str::to_owned)
 }
 
-fn load_auth() -> Result<Auth, &'static str> {
+pub(crate) fn load_auth() -> Result<Auth, &'static str> {
     let path = auth_path().ok_or("Codex login was not found.")?;
     let metadata = fs::metadata(&path).map_err(|_| "Please sign in to Codex Desktop first.")?;
     if !metadata.is_file() || metadata.len() > MAX_AUTH_BYTES {
@@ -62,7 +62,7 @@ fn load_auth() -> Result<Auth, &'static str> {
     })
 }
 
-fn headers(auth: &Auth) -> Result<HeaderMap, &'static str> {
+pub(crate) fn headers(auth: &Auth) -> Result<HeaderMap, &'static str> {
     let mut result = HeaderMap::new();
     let mut bearer = HeaderValue::from_str(&format!("Bearer {}", auth.access_token))
         .map_err(|_| "Codex login data is invalid.")?;
