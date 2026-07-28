@@ -66,7 +66,8 @@ Unsigned 包可以用于内部测试或小范围分发，但公开分发建议�
 
 - 安装和首次打开步骤见根目录 `README.md`。
 - 升级前退出旧版本，再安装同一仓库的新版本包；本机偏好与订阅摘要会保留。
-- 卸载时删除应用本体；彻底卸载还需删除登录项和应用数据，这会清除应用独立 WebView 会话。
+- 卸载前退出应用并关闭开机启动项；macOS 从“应用程序”删除应用，Windows 从“设置 → 应用 → 已安装的应用”卸载。
+- 彻底清除时，再删除应用标识 `app.quotaassistant.desktop` 对应的数据目录：macOS 为 `~/Library/Application Support/app.quotaassistant.desktop`，Windows 为 `%APPDATA%\app.quotaassistant.desktop`。这会删除偏好、WebView 登录会话与订阅摘要，且不可恢复。
 - 回退时重新安装上一版本附件；如果旧版本无法读取新数据，应先备份再清除应用数据。
 - 当前未启用自动更新，不能从上游 Quota Float 或其他仓库混装升级包。
 
