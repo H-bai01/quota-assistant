@@ -50,6 +50,13 @@ fn number(value: &Value, keys: &[&str]) -> Option<f64> {
     keys.iter().find_map(|key| value.get(*key)?.as_f64())
 }
 
+fn normalized_percent(value: f64) -> Option<f64> {
+    if !value.is_finite() || !(0.0..=100.0).contains(&value) {
+        return None;
+    }
+    Some(if value <= 1.0 { value * 100.0 } else { value })
+}
+
 fn timestamp(value: &Value, keys: &[&str]) -> Option<String> {
     keys.iter().find_map(|key| {
         let item = value.get(*key)?;
@@ -104,6 +111,7 @@ fn parse_window(value: Option<&Value>, seconds: u64) -> Option<UsageWindow> {
             "remaining",
         ],
     )
+    .and_then(normalized_percent)
     .or_else(|| {
         number(
             value,
@@ -116,6 +124,7 @@ fn parse_window(value: Option<&Value>, seconds: u64) -> Option<UsageWindow> {
                 "percent",
             ],
         )
+        .and_then(normalized_percent)
         .map(|used| 100.0 - used)
     })?;
     Some(UsageWindow {
@@ -291,5 +300,41 @@ mod tests {
         let weekly = parse_window(find_window(&usage, &["seven_day"]), 604_800).unwrap();
         assert_eq!(short.remaining_percent, 75.5);
         assert_eq!(weekly.remaining_percent, 39.0);
+    }
+
+    #[test]
+    fn accepts_ratio_and_percent_usage_formats() {
+        for utilization in [0.245, 24.5] {
+            let value = serde_json::json!({"utilization": utilization});
+            assert_eq!(
+                parse_window(Some(&value), 18_000)
+                    .unwrap()
+                    .remaining_percent,
+                75.5
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_ratio_and_percent_remaining_formats() {
+        for remaining in [0.755, 75.5] {
+            let value = serde_json::json!({"remaining": remaining});
+            assert_eq!(
+                parse_window(Some(&value), 18_000)
+                    .unwrap()
+                    .remaining_percent,
+                75.5
+            );
+        }
+    }
+
+    #[test]
+    fn percentage_boundaries_are_deterministic_and_invalid_values_fail_closed() {
+        assert_eq!(normalized_percent(0.0), Some(0.0));
+        assert_eq!(normalized_percent(1.0), Some(100.0));
+        assert_eq!(normalized_percent(100.0), Some(100.0));
+        assert_eq!(normalized_percent(-0.1), None);
+        assert_eq!(normalized_percent(100.1), None);
+        assert_eq!(normalized_percent(f64::NAN), None);
     }
 }

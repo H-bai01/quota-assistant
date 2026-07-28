@@ -1,7 +1,5 @@
 import { ArrowClockwise, CalendarCheck, PushPin, PushPinSlash, Square } from "@phosphor-icons/react";
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
-import claudeIcon from "../../claude.png";
-import codexIcon from "../../Codex.png";
 import { clampPercent, formatDateTime, formatResetDate, formatResetTime } from "../lib/format";
 import type { Language, ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
@@ -122,7 +120,14 @@ function planLabel(snapshot: ProviderSnapshot | undefined): string {
 }
 
 function ProviderIcon({ provider, compact = false }: { provider: ProviderId; compact?: boolean }) {
-  return <img className={compact ? "service-icon service-icon--compact" : "service-icon"} src={provider === "codex" ? codexIcon : claudeIcon} alt="" draggable={false} />;
+  return (
+    <span
+      className={`${compact ? "service-icon service-icon--compact" : "service-icon"} service-icon--${provider}`}
+      aria-hidden="true"
+    >
+      {provider === "codex" ? "CX" : "CL"}
+    </span>
+  );
 }
 
 function PercentValue({ value, suffix = "%" }: { value: number | null; suffix?: string }) {
