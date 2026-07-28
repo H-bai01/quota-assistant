@@ -38,7 +38,7 @@ for (const [platform, record] of Object.entries(records)) {
     version,
     commit,
     platform,
-    signed: false,
+    signed: true,
     artifacts: [
       { name: record.package, sha256: sha256(record.packageBody), size: record.packageBody.length },
       { name: record.sbom, sha256: sha256(sbomBody), size: sbomBody.length },
@@ -86,6 +86,19 @@ try {
   assert.equal(gates.platforms.macos.conclusion, "passed");
   assert.equal((await fs.readFile(path.join(output, "SHA256SUMS.txt"), "utf8")).trim().split("\n").length, 7);
 
+  const windowsManifestPath = path.join(input, `quota-assistant_${version}_windows.manifest.json`);
+  const windowsManifest = JSON.parse(await fs.readFile(windowsManifestPath, "utf8"));
+  windowsManifest.signed = false;
+  await fs.writeFile(windowsManifestPath, `${JSON.stringify(windowsManifest)}\n`);
+  const unsigned = spawnSync(process.execPath, [
+    ...common,
+    "--output", path.join(temporaryRoot, "unsigned"),
+  ], { cwd: root, encoding: "utf8" });
+  assert.notEqual(unsigned.status, 0);
+  assert.match(unsigned.stderr, /not signed/);
+  windowsManifest.signed = true;
+  await fs.writeFile(windowsManifestPath, `${JSON.stringify(windowsManifest)}\n`);
+
   const mismatch = spawnSync(process.execPath, [
     ...common.map((value) => value === records.windows.sha256 ? "0".repeat(64) : value),
     "--output", path.join(temporaryRoot, "mismatch"),
@@ -105,7 +118,7 @@ try {
   ], { cwd: root, encoding: "utf8" });
   assert.equal(request.status, 0, request.stderr);
 
-  console.log("Release artifact tests passed (success, mismatch, unknown-file, immutable request). ");
+  console.log("Release artifact tests passed (success, unsigned, mismatch, unknown-file, immutable request). ");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

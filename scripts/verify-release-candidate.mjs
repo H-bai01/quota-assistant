@@ -92,6 +92,9 @@ for (const [platform, record] of Object.entries(expected)) {
   if (manifest.schemaVersion !== 1 || manifest.product !== "quota-assistant" || manifest.version !== version || manifest.commit !== commit || manifest.platform !== platform) {
     fail(`${platform} candidate manifest identity mismatch`);
   }
+  if (manifest.signed !== true) {
+    fail(`${platform} candidate is not signed and cannot pass the formal Release gate`);
+  }
   const manifestArtifacts = new Map(manifest.artifacts.map((artifact) => [artifact.name, artifact.sha256]));
   for (const name of [record.package, record.sbom]) {
     const actual = await digest(path.join(input, name));

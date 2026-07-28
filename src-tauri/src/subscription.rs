@@ -438,19 +438,24 @@ pub fn load_cache(path: &Path) -> Vec<SubscriptionSnapshot> {
     if !safe_cache_path(path) {
         return cache_failure();
     }
+    let backup = path.with_extension("json.bak");
     match read_cache_file(path) {
         Ok(Some(values)) => values,
-        Ok(None) => Vec::new(),
-        Err(()) => {
-            let backup = path.with_extension("json.bak");
-            match read_cache_file(&backup) {
-                Ok(Some(values)) => {
-                    eprintln!("subscription cache recovered from backup");
-                    values
-                }
-                _ => cache_failure(),
+        Ok(None) => match read_cache_file(&backup) {
+            Ok(Some(values)) => {
+                eprintln!("subscription cache recovered from backup after interrupted replacement");
+                values
             }
-        }
+            Ok(None) => Vec::new(),
+            Err(()) => cache_failure(),
+        },
+        Err(()) => match read_cache_file(&backup) {
+            Ok(Some(values)) => {
+                eprintln!("subscription cache recovered from backup");
+                values
+            }
+            _ => cache_failure(),
+        },
     }
 }
 
@@ -1348,6 +1353,10 @@ mod tests {
         persist_cache(&path, &second).unwrap();
         assert_eq!(load_cache(&path), second);
 
+        fs::remove_file(&path).unwrap();
+        assert_eq!(load_cache(&path), first);
+
+        persist_cache(&path, &second).unwrap();
         fs::write(&path, b"{\"schemaVersion\":1,\"snapshots\":[").unwrap();
         assert_eq!(load_cache(&path), first);
 

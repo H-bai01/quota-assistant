@@ -2,7 +2,7 @@
 
 - Codex 数据来自非公开只读接口，字段或认证方式可能变化。
 - 当前候选包未签名、未公证；Windows 可能触发 SmartScreen，macOS 可能触发 Gatekeeper。缺少维护者提供的证书时只能作为测试候选。
-- macOS Universal 包由 GitHub Actions 的 `macos-latest` runner 构建，不能在 Windows 本机直接生成。
+- macOS Universal 包由 GitHub Actions 的 `macos-14` runner 构建，不能在 Windows 本机直接生成。
 - Claude 额度依赖 `claude.ai` 当前的页面与接口结构，变化后可能需要适配。
 - Apple 可能要求重新验证账号；额度助手不会代存 Apple 密码或验证码。已确认的续期日期会继续显示，并在到期前 1 天复核失败时提醒登录。
 - ChatGPT/Claude 的网页直付和 Google Play 订阅读取尚未完成真实账号验证；当前已验收链路为 Apple 订阅。
