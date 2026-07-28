@@ -1,10 +1,10 @@
 # Design QA — 双服务额度总览
 
-- Source visual truth paths:
-- Implementation screenshot paths:
-- Viewports: compact `152 × 152`; expanded `488 × 488`.
+- Source visual truth: user-provided compact and expanded reference screenshots retained outside the repository.
+- Implementation evidence: compact and expanded runtime screenshots retained outside the repository.
+- Current 0.2.1 viewports: compact `120 × 88`; expanded `488 × 488`.
 - Source pixels: compact `200 × 200`; expanded `720 × 720`.
-- Implementation pixels: compact `152 × 152`; expanded `488 × 488`.
+- Archived comparison pixels: compact `152 × 152`; expanded `488 × 488`. The current 0.2.1 compact widget was subsequently reduced to `120 × 88`.
 - Density normalization: implementation screenshots were resampled to `200 × 200` and `720 × 720` solely for equal-pixel visual comparison. The runtime screenshots remain unscaled evidence.
 - State: authenticated Codex + Claude, Chinese language, always-on-top enabled, real local quota data.
 
@@ -47,8 +47,8 @@ No actionable P0, P1, or P2 differences remain.
 
 ## Interaction checks
 
-- Hover/click expansion from compact to overview: passed.
-- Compact window drag before expansion: passed after adding a 260 ms hover delay and prioritizing mouse-down dragging.
+- Click/keyboard expansion from compact to overview: passed.
+- Compact window drag before expansion: passed with pointer-based dragging that takes priority over click expansion.
 - Persistent expansion toggle: passed.
 - Manual refresh: passed with no error state.
 - Chinese/English switching and restoration: passed.

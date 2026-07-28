@@ -46,11 +46,11 @@ jobs:
           releaseBody: |
             ## 额度助手
 
-            - 同时监控 Codex 与 Claude 的 5 小时和周额度。
-            - 支持 Claude 独立登录、双平台轮播、环境诊断和本地隐私保护。
+            - 显示 Codex 周额度与重置机会，以及 Claude 5 小时和周额度。
+            - 支持 Claude 独立登录、双服务总览、订阅日期确认、环境诊断和本地隐私保护。
             - 支持悬浮窗、边缘吸附、托盘与开机启动。
 
-            此版本为本地优先工具，不包含遥测，也不会保存 Codex 令牌或 Claude Cookie。
-          releaseDraft: false
+            此版本为本地优先工具，不包含遥测；应用配置不会复制 Codex 令牌或 Claude Cookie，官方登录会话由独立系统 WebView 管理。
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

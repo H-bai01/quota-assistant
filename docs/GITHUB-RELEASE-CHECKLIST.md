@@ -54,19 +54,16 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-构建完成后，到 GitHub 仓库的 Releases 页面检查 draft release。附件应包含：
-
-- `quota-float-windows-unsigned.zip`
-- `quota-float-macos-universal-unsigned.zip`
+构建完成后，到 GitHub 仓库的 Releases 页面检查 draft release。附件应包含 Tauri 生成的 Windows 安装包和 macOS Universal 应用/DMG。先分别在对应平台检查附件可安装、可启动，再发布草稿。
 
 确认无误后点击 Publish release，然后把 Release 链接发给用户。
 
 ## 发给 Mac 用户时的说明
 
-当前 macOS 包是 unsigned 包。用户首次打开可能会被 Gatekeeper 拦截，可以这样打开：
+当前 macOS 包没有 Developer ID 正式签名且未公证。用户首次打开可能会被 Gatekeeper 拦截，可以这样打开：
 
-1. 下载 `quota-float-macos-universal-unsigned.zip`。
-2. 解压后把应用拖到 Applications 或任意测试目录。
+1. 下载 macOS Universal DMG 或应用包。
+2. 打开 DMG 或解压应用包，把应用拖到 Applications 或任意测试目录。
 3. 右键点击应用，选择 Open。
 4. 在系统提示里再次选择 Open。
 5. 如果仍被拦截，到 System Settings -> Privacy & Security 里允许打开。

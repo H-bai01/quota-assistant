@@ -1,11 +1,11 @@
 name: Bug report
-description: Report a problem with Quota Float.
+description: Report a problem with 额度助手 / Quota Assistant.
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: "Thanks for helping improve Quota Float. Please remove any personal account details from screenshots or logs."
+      value: "Thanks for helping improve Quota Assistant. Please remove any personal account details from screenshots or logs."
   - type: dropdown
     id: os
     attributes:
@@ -19,8 +19,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Quota Float version
-      placeholder: "Example: v0.1.2"
+      label: Quota Assistant version
+      placeholder: "Example: v0.2.1"
     validations:
       required: true
   - type: textarea

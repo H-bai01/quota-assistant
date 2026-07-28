@@ -2,14 +2,14 @@
 
 ## 当前发布目标
 
-Quota Float 使用同一套 React/CSS/Tauri 代码构建 Windows 和 macOS 版本。视觉效果、悬浮球、展开卡片、透明度、圆角和动画参数都应保持在共享前端代码中，避免维护 Windows/macOS 两套 UI。
+额度助手 0.2.1 使用同一套 React/CSS/Tauri 代码构建 Windows 和 macOS 版本。视觉效果、悬浮球、展开卡片、透明度、圆角和动画参数都应保持在共享前端代码中，避免维护 Windows/macOS 两套 UI。
 
-当前发布默认输出 unsigned 包：
+当前发布默认输出未正式签名的包：
 
-- `quota-float-windows-unsigned.zip`
-- `quota-float-macos-universal-unsigned.zip`
+- Windows：Tauri 生成的安装包。
+- macOS：Tauri 生成的 Universal 应用/DMG。
 
-macOS 包使用 Universal 构建，同时支持 Apple Silicon 和 Intel Mac。
+本机验证包是 Apple Silicon（`aarch64`）DMG；GitHub Actions 的 macOS 包使用 Universal 构建，同时支持 Apple Silicon 和 Intel Mac。
 
 ## 发布一个 GitHub 下载版本
 
@@ -41,9 +41,9 @@ macOS CI/release 会显式安装：
 npm run tauri -- build --target universal-apple-darwin
 ```
 
-## macOS unsigned 包使用说明
+## macOS 未正式签名包使用说明
 
-因为当前 macOS 包未签名、未公证，首次打开时 Gatekeeper 可能会阻止启动。小范围测试用户可以使用以下方式打开：
+因为当前 macOS 包没有 Developer ID 正式签名且未公证，首次打开时 Gatekeeper 可能会阻止启动。本地构建可能带 ad-hoc 签名，但不改变这一限制。小范围测试用户可以使用以下方式打开：
 
 1. 解压下载的 macOS zip。
 2. 将应用移动到 Applications 或任意测试目录。
@@ -61,6 +61,14 @@ Unsigned 包可以用于内部测试或小范围分发，但公开分发建议�
 - CI：将证书、密码和 Team ID 放入 GitHub Secrets，再在 release workflow 中加入签名和公证步骤。
 
 证书和账号凭据不能由代码仓库生成，需要由项目所有者购买、申请或配置。
+
+## 安装、升级、卸载与回退
+
+- 安装和首次打开步骤见根目录 `README.md`。
+- 升级前退出旧版本，再安装同一仓库的新版本包；本机偏好与订阅摘要会保留。
+- 卸载时删除应用本体；彻底卸载还需删除登录项和应用数据，这会清除应用独立 WebView 会话。
+- 回退时重新安装上一版本附件；如果旧版本无法读取新数据，应先备份再清除应用数据。
+- 当前未启用自动更新，不能从上游 Quota Float 或其他仓库混装升级包。
 
 ## 跨平台维护原则
 

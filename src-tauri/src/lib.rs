@@ -812,7 +812,7 @@ fn is_primary_mouse_button_pressed() -> bool {
     {
         // Combined session state (0), primary button (0). This reads only the
         // current button state and does not require Accessibility permission.
-        return unsafe { CGEventSourceButtonState(0, 0) };
+        unsafe { CGEventSourceButtonState(0, 0) }
     }
 
     #[cfg(not(target_os = "macos"))]

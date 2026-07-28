@@ -1,4 +1,4 @@
-# Quota Float 项目简介
+# 额度助手项目简介
 
 ## 一句话定位
 
@@ -19,12 +19,12 @@
 - 桌面行为：无边框、透明、置顶、可拖动、可锁定鼠标穿透、可托盘显示/隐藏/刷新/解锁/退出。
 - 跨平台构建：同一套前端 UI/动效代码输出 Windows unsigned 包和 macOS Universal unsigned 包。
 - 状态兜底：接口失败时保留上次成功数据并标记 stale；登录失效、限流、接口变形会给安全提示。
-- 偏好保存：锁定状态、置顶状态、固定 provider、轮播间隔、语言写入 Tauri app config 目录，带 `.bak` 备份恢复。
+- 偏好保存：窗口状态、置顶状态、常态展开和语言写入 Tauri app config 目录，带 `.bak` 备份恢复。
 - 双 provider：Codex 与 Claude 均已启用，并分别隔离失败状态。
 
 ## 关键文件
 
-- `src/App.tsx`：前端状态机，负责刷新、退避、stale 处理、消费中提示、轮播与偏好保存。
+- `src/App.tsx`：前端状态机，负责刷新、退避、stale 处理、订阅提示与偏好保存。
 - `src/components/QuotaDashboard.tsx`：双服务悬浮球、展开卡片、订阅日期与交互按钮。
 - `src/lib/bridge.ts`：浏览器 mock 与 Tauri command 桥接。
 - `src/lib/format.ts`：额度百分比、健康档位、重置时间格式化、快刷新判断。
