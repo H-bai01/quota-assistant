@@ -25,8 +25,8 @@ jobs:
         include:
           - os: windows-latest
             artifact-name: quota-assistant-windows-unsigned
-            build-command: npm run tauri -- build
-            artifact-path: src-tauri/target/release/bundle/**
+            build-command: npm run tauri -- build --bundles nsis
+            artifact-path: src-tauri/target/release/bundle/nsis/**
           - os: macos-latest
             artifact-name: quota-assistant-macos-universal-unsigned
             build-command: npm run tauri -- build --target universal-apple-darwin
