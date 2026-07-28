@@ -44,7 +44,7 @@ if (!input || !output) fail("--input and --output are required");
 if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) fail("Invalid version");
 if (!/^[a-f0-9]{40}$/.test(commit ?? "")) fail("Invalid candidate commit");
 if (!/^\d+$/.test(candidateRunId ?? "")) fail("Invalid candidate workflow run ID");
-if (!new Set(["community", "signed"]).has(releaseTier)) fail("--release-tier must be community or signed");
+if (releaseTier !== "community") fail("Only the GitHub community release tier is currently enabled");
 if (version === "0.2.1") {
   if (previousReleaseTag !== "none" || windowsRollbackEvidenceUrl !== "none" || macosRollbackEvidenceUrl !== "none") {
     fail("The first public release must declare no previous public rollback point");
@@ -94,10 +94,7 @@ for (const [platform, record] of Object.entries(expected)) {
   if (manifest.schemaVersion !== 1 || manifest.product !== "quota-assistant" || manifest.version !== version || manifest.commit !== commit || manifest.platform !== platform) {
     fail(`${platform} candidate manifest identity mismatch`);
   }
-  if (typeof manifest.signed !== "boolean") fail(`${platform} candidate manifest must declare signed as a boolean`);
-  if (releaseTier === "signed" && manifest.signed !== true) {
-    fail(`${platform} candidate is not signed and cannot pass the signed-distribution Release gate`);
-  }
+  if (manifest.signed !== false) fail(`${platform} community candidate must declare signed: false until real platform signature verification is implemented`);
   const manifestArtifacts = new Map(manifest.artifacts.map((artifact) => [artifact.name, artifact.sha256]));
   for (const name of [record.package, record.sbom]) {
     const actual = await digest(path.join(input, name));

@@ -61,6 +61,12 @@ if (!release.includes("release_tier") || !release.includes("--release-tier")) fa
 if (!/options:\s*\n\s*- community(?:\s*\n\s*[a-zA-Z_]|\s*\n\s*$)/m.test(release) || /^\s*- signed\s*$/m.test(release)) {
   fail("release.yml must expose only the enabled community tier until platform signature verification exists");
 }
+for (const validator of ["scripts/validate-release-request.mjs", "scripts/verify-release-candidate.mjs"]) {
+  const validatorText = fs.readFileSync(path.join(root, validator), "utf8");
+  if (!validatorText.includes('releaseTier !== "community"') || /\["community",\s*"signed"\]/.test(validatorText)) {
+    fail(`${validator}: candidate and release validators must reject every non-community tier until real signature verification exists`);
+  }
+}
 for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "windows_rollback_evidence_url", "macos_rollback_evidence_url"]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
 }

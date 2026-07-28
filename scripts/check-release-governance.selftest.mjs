@@ -75,7 +75,16 @@ try {
     await fs.writeFile(file, text.replace("          - community", "          - community\n          - signed"));
   }, /only the enabled community tier/);
 
-  console.log("Release governance adversarial tests passed (8/8).");
+  await expectRejected("candidate-validator-signed-tier", async (directory) => {
+    const file = path.join(directory, "scripts/verify-release-candidate.mjs");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace(
+      'if (releaseTier !== "community") fail("Only the GitHub community release tier is currently enabled");',
+      'if (!["community", "signed"].includes(releaseTier)) fail("Unknown release tier");',
+    ));
+  }, /validators must reject every non-community tier/);
+
+  console.log("Release governance adversarial tests passed (9/9).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

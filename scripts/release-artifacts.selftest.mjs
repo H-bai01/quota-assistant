@@ -93,7 +93,7 @@ try {
     "--output", path.join(temporaryRoot, "unsigned"),
   ], { cwd: root, encoding: "utf8" });
   assert.notEqual(signedTier.status, 0);
-  assert.match(signedTier.stderr, /not signed/);
+  assert.match(signedTier.stderr, /only the GitHub community release tier/i);
 
   for (const platform of Object.keys(records)) {
     const manifestPath = path.join(input, `quota-assistant_${version}_${platform}.manifest.json`);
@@ -106,7 +106,22 @@ try {
     ...common.map((value) => value === "community" ? "signed" : value),
     "--output", signedOutput,
   ], { cwd: root, encoding: "utf8" });
-  assert.equal(signed.status, 0, signed.stderr);
+  assert.notEqual(signed.status, 0, "signed input with forged manifest booleans unexpectedly passed");
+  assert.match(signed.stderr, /only the GitHub community release tier/i);
+
+  const forgedCommunity = spawnSync(process.execPath, [
+    ...common,
+    "--output", path.join(temporaryRoot, "forged-community"),
+  ], { cwd: root, encoding: "utf8" });
+  assert.notEqual(forgedCommunity.status, 0, "community input with forged signed booleans unexpectedly passed");
+  assert.match(forgedCommunity.stderr, /must declare signed: false/i);
+
+  for (const platform of Object.keys(records)) {
+    const manifestPath = path.join(input, `quota-assistant_${version}_${platform}.manifest.json`);
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    manifest.signed = false;
+    await fs.writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
+  }
 
   const mismatch = spawnSync(process.execPath, [
     ...common.map((value) => value === records.windows.sha256 ? "0".repeat(64) : value),
@@ -134,7 +149,7 @@ try {
   assert.notEqual(draftNotesRequest.status, 0, "Candidate notes with placeholders unexpectedly passed");
   assert.match(draftNotesRequest.stderr, /candidate-only text|pending state|traceability placeholders/i);
 
-  console.log("Release artifact tests passed (community unsigned, signed-tier rejection/success, mismatch, unknown-file, immutable request, draft-notes rejection). ");
+  console.log("Release artifact tests passed (community unsigned, signed-tier and forged-signature rejection, mismatch, unknown-file, immutable request, draft-notes rejection). ");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
