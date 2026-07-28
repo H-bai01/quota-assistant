@@ -6,6 +6,28 @@ const root = process.cwd();
 const failures = [];
 const fail = (message) => failures.push(message);
 
+function visibleHtmlWithoutComments(file, text) {
+  let cursor = 0;
+  let visible = "";
+  while (cursor < text.length) {
+    const open = text.indexOf("<!--", cursor);
+    const strayClose = text.indexOf("-->", cursor);
+    if (strayClose !== -1 && (open === -1 || strayClose < open)) {
+      fail(`${file}: HTML comment close has no matching open`);
+      return "";
+    }
+    if (open === -1) return visible + text.slice(cursor);
+    visible += text.slice(cursor, open);
+    const close = text.indexOf("-->", open + 4);
+    if (close === -1) {
+      fail(`${file}: unclosed HTML comment`);
+      return "";
+    }
+    cursor = close + 3;
+  }
+  return visible;
+}
+
 function inspectPublicImageMetadata(file, bytes) {
   if (/\.jpe?g$/i.test(file)) {
     let offset = 2;
@@ -204,7 +226,7 @@ for (const readmeName of readmes) {
     continue;
   }
   const content = fs.readFileSync(readmePath, "utf8");
-  const visibleContent = content.replace(/<!--[\s\S]*?-->/g, "");
+  const visibleContent = visibleHtmlWithoutComments(readmeName, content);
   if (readmeDraftMarkers[readmeName].some((pattern) => pattern.test(content))) {
     fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
   }

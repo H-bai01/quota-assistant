@@ -131,6 +131,24 @@ try {
     await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
   }, /centered language switch/);
 
+  await expectRejected("readme-zh-unclosed-comment-before-first-screen", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `<!--\n${text}`);
+  }, /unclosed HTML comment/);
+
+  await expectRejected("readme-en-unclosed-comment-before-first-screen", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `<!--\n${text}`);
+  }, /unclosed HTML comment/);
+
+  await expectRejected("readme-stray-comment-close", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `-->\n${text}`);
+  }, /comment close has no matching open/);
+
   await expectRejected("image-editor-metadata", async (directory) => {
     const file = path.join(directory, "docs/assets/claude-connect.jpg");
     const bytes = await fs.readFile(file);
@@ -141,7 +159,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (17/17).");
+  console.log("Release governance adversarial tests passed (20/20).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
