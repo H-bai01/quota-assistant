@@ -36,6 +36,10 @@ const CLICK_MOVE_THRESHOLD_LOGICAL: f64 = 4.0;
 const CLICK_MAX_DURATION: Duration = Duration::from_millis(220);
 const POSITION_EPSILON: u32 = 2;
 
+fn app_user_agent() -> String {
+    format!("QuotaAssistant/{}", env!("CARGO_PKG_VERSION"))
+}
+
 #[cfg(target_os = "macos")]
 #[link(name = "CoreGraphics", kind = "framework")]
 unsafe extern "C" {
@@ -666,6 +670,15 @@ mod geometry_tests {
         );
         assert_eq!(position, PhysicalPosition::new(1510, 660));
     }
+
+    #[test]
+    fn user_agent_uses_the_cargo_package_version() {
+        assert_eq!(
+            app_user_agent(),
+            format!("QuotaAssistant/{}", env!("CARGO_PKG_VERSION"))
+        );
+        assert!(!app_user_agent().contains("0.2.0"));
+    }
 }
 
 #[tauri::command]
@@ -1029,7 +1042,13 @@ fn set_widget_always_on_top(
 fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show / Hide", true, None::<&str>)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh now", true, None::<&str>)?;
-    let update = MenuItem::with_id(app, "update", "Check for updates", true, None::<&str>)?;
+    let update = MenuItem::with_id(
+        app,
+        "update",
+        "Updates are not enabled",
+        false,
+        None::<&str>,
+    )?;
     let unlock = MenuItem::with_id(app, "unlock", "Unlock widget", true, None::<&str>)?;
     let pin = MenuItem::with_id(app, "pin", "Pin / Unpin provider", true, None::<&str>)?;
     let connect_claude =
@@ -1087,7 +1106,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     if initial_language != "en" {
         let _ = show.set_text("显示 / 隐藏");
         let _ = refresh.set_text("立即刷新");
-        let _ = update.set_text("检查更新");
+        let _ = update.set_text("更新功能暂未启用");
         let _ = unlock.set_text("解锁悬浮窗");
         let _ = pin.set_text("固定 / 取消固定当前服务");
         let _ = connect_claude.set_text("连接 Claude");
@@ -1166,9 +1185,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
             "refresh" => {
                 let _ = app.emit_to("widget", "refresh-requested", ());
             }
-            "update" => {
-                let _ = app.emit_to("widget", "update-check-requested", ());
-            }
             "connect-claude" => {
                 let app = app.clone();
                 tauri::async_runtime::spawn(async move {
@@ -1246,9 +1262,9 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                             "立即刷新"
                         });
                         let _ = update_menu.set_text(if english {
-                            "Check for updates"
+                            "Updates are not enabled"
                         } else {
-                            "检查更新"
+                            "更新功能暂未启用"
                         });
                         let _ = unlock_menu.set_text(if english {
                             "Unlock widget"
@@ -1334,7 +1350,7 @@ pub fn run() {
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(12))
                 .redirect(reqwest::redirect::Policy::none())
-                .user_agent("QuotaAssistant/0.2.0")
+                .user_agent(app_user_agent())
                 .build()
                 .expect("static HTTP client configuration must be valid");
             app.manage(AppState {
@@ -1353,9 +1369,6 @@ pub fn run() {
                 drag_origin: Mutex::new(None),
                 drag_started: Mutex::new(None),
             });
-            if let Err(error) = claude_auth::ensure_auth_window(app.handle()) {
-                eprintln!("Claude auth initialization failed: {error}");
-            }
             if setup_tray(app).is_err() {
                 eprintln!("tray setup failed; enabling taskbar fallback");
                 if let Some(window) = app.get_webview_window("widget") {
@@ -1444,6 +1457,15 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if matches!(
+                    window.label(),
+                    "claude-auth"
+                        | "subscription-reader-apple"
+                        | "subscription-login-google"
+                        | "subscription-login-chatgpt"
+                ) {
+                    return;
+                }
                 api.prevent_close();
                 let _ = window.hide();
             }

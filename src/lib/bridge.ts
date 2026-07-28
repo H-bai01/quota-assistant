@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { currentMonitor } from "@tauri-apps/api/window";
-import type { DiagnosticsReport, EnvironmentStatus, ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "../types";
+import type { DiagnosticsReport, EnvironmentStatus, ProviderId, ProviderSnapshot, SubscriptionLoginEnded, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
 const defaultPreferences: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
 
@@ -166,12 +167,11 @@ export function setWidgetExpanded(expanded: boolean): Promise<void> {
 export async function listenDesktopEvents(handlers: {
   onPreferences: (value: WidgetPreferences) => void;
   onRefresh: () => void;
-  onUpdate: () => void;
+  onSubscriptionLoginEnded: (value: SubscriptionLoginEnded) => void;
 }): Promise<() => void> {
   if (!isTauri()) return () => undefined;
-  const { listen } = await import("@tauri-apps/api/event");
   const unlistenPreferences = await listen<WidgetPreferences>("preferences-changed", (event) => handlers.onPreferences(event.payload));
   const unlistenRefresh = await listen("refresh-requested", handlers.onRefresh);
-  const unlistenUpdate = await listen("update-check-requested", handlers.onUpdate);
-  return () => { unlistenPreferences(); unlistenRefresh(); unlistenUpdate(); };
+  const unlistenSubscriptionLogin = await listen<SubscriptionLoginEnded>("subscription-login-ended", (event) => handlers.onSubscriptionLoginEnded(event.payload));
+  return () => { unlistenPreferences(); unlistenRefresh(); unlistenSubscriptionLogin(); };
 }

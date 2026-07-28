@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QuotaOverview, QuotaSummary } from "./components/QuotaDashboard";
 import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
 import { needsFastRefresh } from "./lib/format";
-import { checkForAppUpdate } from "./lib/appUpdate";
 import { copy, nextLanguage, normalizeLanguage } from "./lib/i18n";
 import { mergeSnapshots } from "./lib/snapshots";
+import { shouldContinueSubscriptionPolling, SUBSCRIPTION_POLL_INITIAL_DELAY_MS, SUBSCRIPTION_POLL_INTERVAL_MS } from "./lib/subscriptionPolling";
 import type { ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "./types";
 
 const DEFAULT_PREFS: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
@@ -22,22 +22,9 @@ export default function App() {
   const hoverSequence = useRef(0);
   const subscriptionRequest = useRef(0);
   const subscriptionPolling = useRef<number | null>(null);
+  const subscriptionPollingProvider = useRef<ProviderId | null>(null);
   const language = normalizeLanguage(preferences.language);
   const t = copy[language];
-
-  const checkUpdate = useCallback((manual = false) => {
-    void checkForAppUpdate(language, {
-      checking: t.updateChecking,
-      current: t.updateCurrent,
-      downloading: t.updateDownloading,
-      installing: t.updateInstalling,
-      availableWindows: t.updateAvailableWindows,
-      availableMac: t.updateAvailableMac,
-      failed: t.updateFailed,
-    }, (message) => {
-      setOperationError(message);
-    }, manual);
-  }, [language, t]);
 
   const refresh = useCallback(async (force = false) => {
     try {
@@ -101,6 +88,7 @@ export default function App() {
     return () => {
       if (collapseTimer.current !== null) window.clearTimeout(collapseTimer.current);
       if (subscriptionPolling.current !== null) window.clearTimeout(subscriptionPolling.current);
+      subscriptionPollingProvider.current = null;
     };
   }, [refresh, refreshSubscriptionInfo]);
 
@@ -114,16 +102,22 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     let cleanup: () => void = () => {};
-    void listenDesktopEvents({ onPreferences: (value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) }), onRefresh: () => void refresh(true), onUpdate: () => checkUpdate(true) }).then((value) => {
+    void listenDesktopEvents({
+      onPreferences: (value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) }),
+      onRefresh: () => void refresh(true),
+      onSubscriptionLoginEnded: (value) => {
+        if (subscriptionPollingProvider.current !== value.provider) return;
+        if (subscriptionPolling.current !== null) window.clearTimeout(subscriptionPolling.current);
+        subscriptionPolling.current = null;
+        subscriptionPollingProvider.current = null;
+        if (value.outcome === "success") void refreshSubscriptionInfo(false);
+        else if (value.outcome === "failed") setOperationError("官方登录未完成，请重新打开登录窗口。");
+      },
+    }).then((value) => {
       if (cancelled) value(); else cleanup = value;
     }).catch(() => setOperationError("Desktop event listener failed to start."));
     return () => { cancelled = true; cleanup(); };
-  }, [checkUpdate, refresh]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => checkUpdate(false), 12_000);
-    return () => window.clearTimeout(timer);
-  }, [checkUpdate]);
+  }, [refresh, refreshSubscriptionInfo]);
 
   const refreshMs = useMemo(() => {
     const backoff = failures.current === 0 ? 5 * 60_000 : Math.min(30 * 60_000, 30_000 * 2 ** (failures.current - 1));
@@ -159,21 +153,46 @@ export default function App() {
       window.clearTimeout(subscriptionPolling.current);
       subscriptionPolling.current = null;
     }
+    subscriptionPollingProvider.current = provider;
     void openSubscriptionLogin(provider)
       .then(() => {
+        if (subscriptionPollingProvider.current !== provider) return;
+        const startedAt = Date.now();
+        let attempts = 0;
         const poll = async () => {
+          if (subscriptionPollingProvider.current !== provider) return;
+          attempts += 1;
           const values = await refreshSubscriptionInfo(false);
+          if (subscriptionPollingProvider.current !== provider) return;
           const item = values?.find((value) => value.provider === provider);
           if (item?.status === "ready") {
             subscriptionPolling.current = null;
+            subscriptionPollingProvider.current = null;
             return;
           }
-          subscriptionPolling.current = window.setTimeout(() => void poll(), 8_000);
+          if (!shouldContinueSubscriptionPolling(
+            attempts,
+            Date.now() - startedAt,
+            item?.status ?? null,
+          )) {
+            subscriptionPolling.current = null;
+            subscriptionPollingProvider.current = null;
+            setOperationError("登录确认已停止。请完成登录后手动刷新，或重新打开登录窗口。");
+            return;
+          }
+          subscriptionPolling.current = window.setTimeout(
+            () => void poll(),
+            SUBSCRIPTION_POLL_INTERVAL_MS,
+          );
         };
-        subscriptionPolling.current = window.setTimeout(() => void poll(), 5_000);
+        subscriptionPolling.current = window.setTimeout(
+          () => void poll(),
+          SUBSCRIPTION_POLL_INITIAL_DELAY_MS,
+        );
       })
       .catch(() => {
         subscriptionPolling.current = null;
+        subscriptionPollingProvider.current = null;
         setOperationError("无法打开官方登录页面，请稍后重试。");
       });
   }, [refreshSubscriptionInfo]);

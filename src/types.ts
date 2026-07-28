@@ -38,6 +38,11 @@ export interface SubscriptionSnapshot {
   updatedAt: string;
 }
 
+export interface SubscriptionLoginEnded {
+  provider: ProviderId;
+  outcome: "success" | "cancelled" | "failed";
+}
+
 export interface EnvironmentStatus {
   codexInstalled: boolean;
   codexCredentialsFound: boolean;
