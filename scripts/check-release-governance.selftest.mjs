@@ -113,6 +113,12 @@ try {
     await fs.appendFile(file, "\n# windows_evidence_url\n");
   }, /must not accept false Windows validation evidence/);
 
+  await expectRejected("windows-claim-rule-drift", async (directory) => {
+    const file = path.join(directory, "scripts/validate-release-request.mjs");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace("(?:has|have)\\s+(?:all\\s+)?passed", "(?:has|have)\\s+passed"));
+  }, /exact same visible Windows preview contradiction rule/);
+
   await expectRejected("readme-zh-preview-hidden-in-comment", async (directory) => {
     const file = path.join(directory, "README.md");
     const text = await fs.readFile(file, "utf8");
@@ -141,6 +147,14 @@ try {
 
   await expectRejected("release-notes-contradictory-windows-claim", async (directory) => {
     await fs.appendFile(path.join(directory, "docs/releases/v0.2.2.md"), "\nWindows downgrade has been validated and is formally supported.\n");
+  }, /contradictory claim/);
+
+  await expectRejected("readme-zh-exact-real-device-pass-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.md"), "\nWindows 安装、冷启动、GUI、托盘、拖动、置顶、锁定/解锁、双语、诊断、退出、卸载和降级均已实机通过。\n");
+  }, /contradictory claim/);
+
+  await expectRejected("readme-en-exact-real-device-pass-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.en.md"), "\nWindows installation, cold start, GUI, tray, drag, always-on-top, lock/unlock, both languages, diagnostics, quit, uninstall, and downgrade have all passed real-device validation.\n");
   }, /contradictory claim/);
 
   await expectRejected("release-notes-unclosed-comment", async (directory) => {
@@ -226,7 +240,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (32/32).");
+  console.log("Release governance adversarial tests passed (35/35).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

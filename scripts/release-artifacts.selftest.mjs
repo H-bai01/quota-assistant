@@ -281,6 +281,14 @@ try {
     await fs.appendFile(path.join(directory, "docs/releases/v0.2.2.md"), "\nWindows downgrade has been validated and is formally supported.\n");
   }, /contradictory claim/, true);
 
+  await expectReleaseRequestRejected("validator-zh-exact-real-device-pass-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.md"), "\nWindows 安装、冷启动、GUI、托盘、拖动、置顶、锁定/解锁、双语、诊断、退出、卸载和降级均已实机通过。\n");
+  }, /contradictory claim/);
+
+  await expectReleaseRequestRejected("validator-en-exact-real-device-pass-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.en.md"), "\nWindows installation, cold start, GUI, tray, drag, always-on-top, lock/unlock, both languages, diagnostics, quit, uninstall, and downgrade have all passed real-device validation.\n");
+  }, /contradictory claim/);
+
   await expectReleaseRequestRejected("validator-notes-unclosed-comment", async (directory) => {
     const file = path.join(directory, "docs/releases/v0.2.2.md");
     const text = await fs.readFile(file, "utf8");

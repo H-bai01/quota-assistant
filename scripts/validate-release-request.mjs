@@ -33,7 +33,7 @@ function visibleHtmlWithoutComments(file, text) {
 function rejectContradictoryWindowsClaims(file, text) {
   const behaviors = /\bGUI\b|安装|冷启动|紧凑|展开|托盘|拖动|置顶|锁定|解锁|双语|语言|诊断|退出|卸载|降级|installation|cold start|compact|expanded|tray|drag|always-on-top|lock|unlock|languages?|diagnostics?|quit|uninstall|downgrade/i;
   const windows = /Windows/i;
-  const affirmations = /已(?:经)?(?:完成|通过|验证|验收)|(?:验证|验收)(?:已)?通过|正式支持|通过(?:了)?实机验收|(?:has|have|is|are)\s+(?:been\s+)?(?:fully\s+)?(?:validated|verified|tested(?:\s+and\s+passed)?|completed|formally\s+supported)|(?:GUI|installation|real[- ]device)\s+(?:validation\s+)?(?:passed|completed)|formally\s+supported/gi;
+  const affirmations = /(?:均|全部)?已(?:均|全部)?实机通过|已(?:经)?(?:完成|通过|验证|验收)|(?:验证|验收)(?:已)?通过|正式支持|通过(?:了)?实机验收|(?:has|have)\s+(?:all\s+)?passed\s+real[- ]device\s+validation|(?:has|have|is|are)\s+(?:been\s+)?(?:fully\s+)?(?:validated|verified|tested(?:\s+and\s+passed)?|completed|formally\s+supported)|(?:GUI|installation|real[- ]device)\s+(?:validation\s+)?(?:passed|completed)|formally\s+supported/gi;
   const negativeBefore = /未|尚未|不(?:得|能|应|可|会|是)?|没有|无|缺少|仍缺|\b(?:not|no|without|never|must\s+not|has\s+not|have\s+not|isn't|aren't|lacks?|unvalidated)\b/i;
   for (const segment of text.split(/\r?\n|[\u3002！？；;|]/)) {
     if (!windows.test(segment) || !behaviors.test(segment)) continue;

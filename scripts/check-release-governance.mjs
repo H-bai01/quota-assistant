@@ -31,7 +31,7 @@ function visibleHtmlWithoutComments(file, text) {
 function rejectContradictoryWindowsClaims(file, text) {
   const behaviors = /\bGUI\b|安装|冷启动|紧凑|展开|托盘|拖动|置顶|锁定|解锁|双语|语言|诊断|退出|卸载|降级|installation|cold start|compact|expanded|tray|drag|always-on-top|lock|unlock|languages?|diagnostics?|quit|uninstall|downgrade/i;
   const windows = /Windows/i;
-  const affirmations = /已(?:经)?(?:完成|通过|验证|验收)|(?:验证|验收)(?:已)?通过|正式支持|通过(?:了)?实机验收|(?:has|have|is|are)\s+(?:been\s+)?(?:fully\s+)?(?:validated|verified|tested(?:\s+and\s+passed)?|completed|formally\s+supported)|(?:GUI|installation|real[- ]device)\s+(?:validation\s+)?(?:passed|completed)|formally\s+supported/gi;
+  const affirmations = /(?:均|全部)?已(?:均|全部)?实机通过|已(?:经)?(?:完成|通过|验证|验收)|(?:验证|验收)(?:已)?通过|正式支持|通过(?:了)?实机验收|(?:has|have)\s+(?:all\s+)?passed\s+real[- ]device\s+validation|(?:has|have|is|are)\s+(?:been\s+)?(?:fully\s+)?(?:validated|verified|tested(?:\s+and\s+passed)?|completed|formally\s+supported)|(?:GUI|installation|real[- ]device)\s+(?:validation\s+)?(?:passed|completed)|formally\s+supported/gi;
   const negativeBefore = /未|尚未|不(?:得|能|应|可|会|是)?|没有|无|缺少|仍缺|\b(?:not|no|without|never|must\s+not|has\s+not|have\s+not|isn't|aren't|lacks?|unvalidated)\b/i;
   for (const segment of text.split(/\r?\n|[\u3002！？；;|]/)) {
     if (!windows.test(segment) || !behaviors.test(segment)) continue;
@@ -45,6 +45,19 @@ function rejectContradictoryWindowsClaims(file, text) {
       fail(`${file}: contradictory claim says Windows preview behavior is validated or formally supported`);
     }
   }
+}
+
+function extractNamedFunction(text, name) {
+  const start = text.indexOf(`function ${name}(`);
+  if (start < 0) return "";
+  const bodyStart = text.indexOf("{", start);
+  let depth = 0;
+  for (let index = bodyStart; index < text.length; index += 1) {
+    if (text[index] === "{") depth += 1;
+    if (text[index] === "}") depth -= 1;
+    if (depth === 0) return text.slice(start, index + 1);
+  }
+  return "";
 }
 
 function inspectPublicImageMetadata(file, bytes) {
@@ -140,6 +153,9 @@ if (!release.includes("actions/download-artifact@")) fail("release.yml must down
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify candidate artifacts and required platform evidence");
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
 const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
+if (extractNamedFunction(releaseRequestValidator, "rejectContradictoryWindowsClaims") !== rejectContradictoryWindowsClaims.toString()) {
+  fail("Both release gates must use the exact same visible Windows preview contradiction rule");
+}
 if (!releaseRequestValidator.includes("readmeDraftMarkers") || !releaseRequestValidator.includes("README.en.md")) {
   fail("validate-release-request.mjs must reject candidate or not-yet-released README wording");
 }
