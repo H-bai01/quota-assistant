@@ -42,6 +42,12 @@ beforeEach(() => {
 });
 
 describe("widget transitions", () => {
+  it("routes click-through locking to the Rust widget command", async () => {
+    const { setClickThrough } = await import("./bridge");
+    await setClickThrough(true);
+    expect(api.invoke).toHaveBeenCalledWith("set_widget_locked", { locked: true });
+  });
+
   it("starts a widget drag through the combined native command", async () => {
     vi.useFakeTimers();
     const { startDragging } = await import("./bridge");

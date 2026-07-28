@@ -2,7 +2,8 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { QuotaSummary } from "./QuotaDashboard";
+import { QuotaOverview, QuotaSummary } from "./QuotaDashboard";
+import type { Language, WidgetPreferences } from "../types";
 
 beforeAll(() => {
   Object.defineProperty(window, "PointerEvent", { value: MouseEvent, writable: true });
@@ -48,5 +49,49 @@ describe("QuotaSummary interactions", () => {
     fireEvent.pointerUp(summary, { pointerId: 1, screenX: 140, screenY: 130 });
     await vi.waitFor(() => expect(onDragMove).toHaveBeenCalled());
     expect(onExpand).not.toHaveBeenCalled();
+  });
+});
+
+describe("QuotaOverview click-through lock", () => {
+  function renderOverview(language: Language, onLockClickThrough = vi.fn()) {
+    const preferences: WidgetPreferences = {
+      locked: false,
+      alwaysOnTop: true,
+      stayExpanded: false,
+      pinnedProvider: null,
+      autoRotateSeconds: 12,
+      language,
+    };
+    render(<QuotaOverview
+      snapshots={[]}
+      subscriptions={[]}
+      preferences={preferences}
+      onDrag={vi.fn()}
+      onHover={vi.fn()}
+      onRefresh={vi.fn()}
+      onRefreshSubscriptions={vi.fn()}
+      onOpenSubscriptionLogin={vi.fn()}
+      onToggleStayExpanded={vi.fn()}
+      onToggleLanguage={vi.fn()}
+      onToggleAlwaysOnTop={vi.fn()}
+      onLockClickThrough={onLockClickThrough}
+      onConnectClaude={vi.fn()}
+      subscriptionBusy={false}
+    />);
+    return onLockClickThrough;
+  }
+
+  it("shows an accurately labelled Chinese lock button and invokes the callback", () => {
+    const onLockClickThrough = renderOverview("zh-CN");
+    const button = screen.getByRole("button", { name: "锁定鼠标穿透" });
+    expect(button.getAttribute("title")).toBe("锁定鼠标穿透");
+    fireEvent.click(button);
+    expect(onLockClickThrough).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows an accurately labelled English lock button", () => {
+    renderOverview("en");
+    const button = screen.getByRole("button", { name: "Lock click-through" });
+    expect(button.getAttribute("title")).toBe("Lock click-through");
   });
 });

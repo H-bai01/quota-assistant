@@ -1,4 +1,4 @@
-import { ArrowClockwise, CalendarCheck, PushPin, PushPinSlash, Square } from "@phosphor-icons/react";
+import { ArrowClockwise, CalendarCheck, LockSimple, PushPin, PushPinSlash, Square } from "@phosphor-icons/react";
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import claudeIcon from "../../claude.png";
 import codexIcon from "../../Codex.png";
@@ -17,6 +17,7 @@ interface DashboardProps {
   onToggleStayExpanded: () => void;
   onToggleLanguage: () => void;
   onToggleAlwaysOnTop: () => void;
+  onLockClickThrough: () => void;
   onConnectClaude: () => void;
   subscriptionBusy: boolean;
   notice?: ReactNode;
@@ -40,6 +41,7 @@ const labels = {
     keepExpanded: "保持常态展开",
     pinOn: "置顶显示",
     pinOff: "取消置顶",
+    lockClickThrough: "锁定鼠标穿透",
     codexWeekly: "本周剩余",
     claudeShort: "5 小时剩余",
     weekly: "本周剩余",
@@ -69,6 +71,7 @@ const labels = {
     keepExpanded: "Keep expanded",
     pinOn: "Keep on top",
     pinOff: "Disable always on top",
+    lockClickThrough: "Lock click-through",
     codexWeekly: "Weekly remaining",
     claudeShort: "5-hour remaining",
     weekly: "Weekly remaining",
@@ -316,7 +319,7 @@ function ClaudePanel({ snapshot, subscription, language, onConnect, onSubscripti
   );
 }
 
-export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscriptions, preferences, onDrag, onHover, onRefresh, onRefreshSubscriptions, onOpenSubscriptionLogin, onToggleStayExpanded, onToggleLanguage, onToggleAlwaysOnTop, onConnectClaude, subscriptionBusy, notice = null }: DashboardProps) {
+export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscriptions, preferences, onDrag, onHover, onRefresh, onRefreshSubscriptions, onOpenSubscriptionLogin, onToggleStayExpanded, onToggleLanguage, onToggleAlwaysOnTop, onLockClickThrough, onConnectClaude, subscriptionBusy, notice = null }: DashboardProps) {
   const language = preferences.language;
   const t = labels[language];
   const buttonMouseDown = (event: React.MouseEvent) => event.stopPropagation();
@@ -339,6 +342,7 @@ export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscripti
             <button type="button" className={preferences.stayExpanded ? "is-active" : ""} onClick={onToggleStayExpanded} aria-pressed={preferences.stayExpanded} aria-label={preferences.stayExpanded ? t.collapse : t.keepExpanded} title={preferences.stayExpanded ? t.collapse : t.keepExpanded}><Square weight={preferences.stayExpanded ? "fill" : "regular"} /></button>
             <button type="button" className="language-button" onClick={onToggleLanguage} aria-label={language === "zh-CN" ? "Switch to English" : "切换到中文"}>{language === "zh-CN" ? "EN" : "中"}</button>
             <button type="button" className={preferences.alwaysOnTop ? "is-active" : ""} onClick={onToggleAlwaysOnTop} aria-pressed={preferences.alwaysOnTop} aria-label={preferences.alwaysOnTop ? t.pinOff : t.pinOn} title={preferences.alwaysOnTop ? t.pinOff : t.pinOn}>{preferences.alwaysOnTop ? <PushPin weight="fill" /> : <PushPinSlash />}</button>
+            <button type="button" onClick={onLockClickThrough} aria-label={t.lockClickThrough} title={t.lockClickThrough}><LockSimple /></button>
           </nav>
         ) : null}
       </header>

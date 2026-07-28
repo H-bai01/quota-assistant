@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QuotaOverview, QuotaSummary } from "./components/QuotaDashboard";
-import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
+import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setClickThrough, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
 import { needsFastRefresh } from "./lib/format";
 import { copy, nextLanguage, normalizeLanguage } from "./lib/i18n";
 import { mergeSnapshots } from "./lib/snapshots";
@@ -147,6 +147,16 @@ export default function App() {
     void updatePreferences(next).catch(() => { setPreferences(previous); setOperationError("Settings could not be saved. Previous state restored."); });
   }, [preferences]);
 
+  const lockClickThrough = useCallback(() => {
+    setOperationError(null);
+    void setClickThrough(true)
+      .then((value) => {
+        if (!value.locked) throw new Error("click-through lock was not applied");
+        setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) });
+      })
+      .catch(() => setOperationError(t.lockClickThroughFailed));
+  }, [t.lockClickThroughFailed]);
+
   const handleSubscriptionLogin = useCallback((provider: ProviderId) => {
     setOperationError(null);
     if (subscriptionPolling.current !== null) {
@@ -244,6 +254,7 @@ export default function App() {
       onToggleStayExpanded={() => savePreferences({ ...preferences, stayExpanded: !preferences.stayExpanded })}
       onToggleLanguage={() => savePreferences({ ...preferences, language: nextLanguage(language) })}
       onToggleAlwaysOnTop={() => { setOperationError(null); void setAlwaysOnTop(!preferences.alwaysOnTop).then((value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) })).catch(() => setOperationError("Always-on-top toggle failed.")); }}
+      onLockClickThrough={lockClickThrough}
       onDrag={() => startDragging()}
       onHover={handleHover}
       onRefresh={() => refresh(true)}

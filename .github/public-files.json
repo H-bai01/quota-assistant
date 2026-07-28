@@ -79,6 +79,7 @@
     "src-tauri/src/models.rs",
     "src-tauri/src/subscription.rs",
     "src-tauri/tauri.conf.json",
+    "src/App.test.tsx",
     "src/App.tsx",
     "src/components/DiagnosticsView.tsx",
     "src/components/ProviderMark.tsx",
