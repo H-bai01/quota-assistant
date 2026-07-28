@@ -88,6 +88,19 @@ try {
     await fs.appendFile(path.join(directory, "README.en.md"), "\nCandidate release pending.\n");
   }, /candidate or not-yet-released README wording/);
 
+  await expectRejected("readme-centered-title", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace('<h1 align="center">额度助手', '<h1 align="left">额度助手'));
+  }, /centered title/);
+
+  await expectRejected("readme-centered-language-switch", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    const languageSwitch = '<p align="center">\n  <a href="README.md">简体中文</a>';
+    await fs.writeFile(file, text.replace(languageSwitch, languageSwitch.replace("center", "left")));
+  }, /centered language switch/);
+
   await expectRejected("image-editor-metadata", async (directory) => {
     const file = path.join(directory, "docs/assets/claude-connect.jpg");
     const bytes = await fs.readFile(file);
@@ -98,7 +111,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (11/11).");
+  console.log("Release governance adversarial tests passed (13/13).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

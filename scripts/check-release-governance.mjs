@@ -207,8 +207,15 @@ for (const readmeName of readmes) {
   if (readmeDraftMarkers[readmeName].some((pattern) => pattern.test(content))) {
     fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
   }
-  if (!content.includes(`# ${readmeName === "README.md" ? "额度助手" : "Quota Assistant"} v${packageVersion}`)) {
-    fail(`${readmeName}: title does not match package version ${packageVersion}`);
+  const productName = readmeName === "README.md" ? "额度助手" : "Quota Assistant";
+  if (!content.includes(`<h1 align="center">${productName} v${packageVersion}</h1>`)) {
+    fail(`${readmeName}: centered title does not match package version ${packageVersion}`);
+  }
+  if (!/<p align="center">\s*<img src="src-tauri\/icons\/icon\.png"[^>]*>\s*<\/p>/.test(content)) {
+    fail(`${readmeName}: centered application logo is missing`);
+  }
+  if (!/<p align="center">\s*<a href="README\.md">简体中文<\/a>\s*·\s*<a href="README\.en\.md">English<\/a>\s*<\/p>/.test(content)) {
+    fail(`${readmeName}: centered language switch is missing`);
   }
   for (const required of [
     `releases/download/v${packageVersion}/quota-assistant_${packageVersion}_macos_universal.dmg`,
@@ -241,8 +248,8 @@ for (const readmeName of readmes) {
     }
   }
 }
-if (!fs.readFileSync(path.join(root, "README.md"), "utf8").includes("[English](README.en.md)")) fail("README.md must link to README.en.md");
-if (!fs.readFileSync(path.join(root, "README.en.md"), "utf8").includes("[简体中文](README.md)")) fail("README.en.md must link to README.md");
+if (!fs.readFileSync(path.join(root, "README.md"), "utf8").includes('<a href="README.en.md">English</a>')) fail("README.md must link to README.en.md");
+if (!fs.readFileSync(path.join(root, "README.en.md"), "utf8").includes('<a href="README.md">简体中文</a>')) fail("README.en.md must link to README.md");
 
 if (failures.length) {
   console.error(`Release governance failed (${failures.length}):\n- ${failures.join("\n- ")}`);

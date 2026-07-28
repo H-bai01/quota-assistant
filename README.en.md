@@ -1,6 +1,10 @@
-# Quota Assistant v0.2.2
-
-[简体中文](README.md) · [English](README.en.md)
+<p align="center">
+  <img src="src-tauri/icons/icon.png" alt="Quota Assistant logo" width="96" height="96">
+</p>
+<h1 align="center">Quota Assistant v0.2.2</h1>
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
+</p>
 
 [![CI](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag)](https://github.com/H-bai01/quota-assistant/releases)
@@ -41,7 +45,7 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 2. Expand the widget, choose **Connect Claude**, and sign in only on the official Claude page opened by the app.
 3. Choose **Get subscription info**. The app identifies the billing source; Apple-managed subscriptions are confirmed only on an official Apple page.
 
-![Claude connection entry when no session is available](docs/assets/claude-connect.jpg)
+![Codex and Claude overview with valid quota data for both services](docs/assets/macos-expanded-real.jpg)
 
 ## Contents
 

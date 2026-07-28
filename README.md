@@ -1,6 +1,10 @@
-# 额度助手 v0.2.2
-
-[简体中文](README.md) · [English](README.en.md)
+<p align="center">
+  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="96" height="96">
+</p>
+<h1 align="center">额度助手 v0.2.2</h1>
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
+</p>
 
 [![CI](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag)](https://github.com/H-bai01/quota-assistant/releases)
@@ -41,7 +45,7 @@
 2. 展开悬浮窗，点击“连接 Claude”，只在应用打开的 Claude 官方页面完成登录。
 3. 点击日历按钮“获取订阅信息”。程序会识别购买来源；需要 Apple 确认时，只在 Apple 官方页面登录。
 
-![Claude 尚未连接时的入口](docs/assets/claude-connect.jpg)
+![Codex 与 Claude 均有有效额度数据的双服务总览](docs/assets/macos-expanded-real.jpg)
 
 ## 目录
 
