@@ -165,14 +165,39 @@ try {
   assert.notEqual(readmeGate.status, 0, "Candidate README wording unexpectedly passed");
   assert.match(readmeGate.stderr, /candidate or not-yet-released wording/i);
 
-  const draftNotesRequest = spawnSync(process.execPath, [
+  const finalNotesRequest = spawnSync(process.execPath, [
     "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", head,
     "--release-tier", "community", "--notes", `docs/releases/v${packageVersion}.md`,
   ], { cwd: root, encoding: "utf8" });
+  assert.equal(finalNotesRequest.status, 0, finalNotesRequest.stderr);
+
+  const notesGateRoot = path.join(temporaryRoot, "notes-gate");
+  await fs.mkdir(path.join(notesGateRoot, "scripts"), { recursive: true });
+  await fs.mkdir(path.join(notesGateRoot, "docs/releases"), { recursive: true });
+  for (const file of ["package.json", "README.md", "README.en.md"]) {
+    await fs.copyFile(path.join(root, file), path.join(notesGateRoot, file));
+  }
+  await fs.copyFile(
+    path.join(root, "scripts/validate-release-request.mjs"),
+    path.join(notesGateRoot, "scripts/validate-release-request.mjs"),
+  );
+  const notesPath = `docs/releases/v${packageVersion}.md`;
+  await fs.copyFile(path.join(root, notesPath), path.join(notesGateRoot, notesPath));
+  await fs.appendFile(path.join(notesGateRoot, notesPath), "\nPlatform validation: pending\n<final 40-character candidate SHA>\n");
+  spawnSync("git", ["init", "-q"], { cwd: notesGateRoot });
+  spawnSync("git", ["config", "user.name", "Release Self-test"], { cwd: notesGateRoot });
+  spawnSync("git", ["config", "user.email", "release-selftest@example.invalid"], { cwd: notesGateRoot });
+  spawnSync("git", ["add", "-A"], { cwd: notesGateRoot });
+  spawnSync("git", ["commit", "-qm", "synthetic draft notes"], { cwd: notesGateRoot });
+  const notesGateHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: notesGateRoot, encoding: "utf8" }).stdout.trim();
+  const draftNotesRequest = spawnSync(process.execPath, [
+    "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", notesGateHead,
+    "--release-tier", "community", "--notes", notesPath,
+  ], { cwd: notesGateRoot, encoding: "utf8" });
   assert.notEqual(draftNotesRequest.status, 0, "Candidate notes with placeholders unexpectedly passed");
   assert.match(draftNotesRequest.stderr, /candidate-only text|pending state|traceability placeholders/i);
 
-  console.log("Release artifact tests passed (community unsigned, signed-tier and forged-signature rejection, mismatch, unknown-file, immutable request, draft-notes rejection). ");
+  console.log("Release artifact tests passed (community unsigned, signed-tier and forged-signature rejection, mismatch, unknown-file, immutable request, final-notes acceptance, injected-draft rejection). ");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
