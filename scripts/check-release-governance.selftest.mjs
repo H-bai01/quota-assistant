@@ -101,6 +101,36 @@ try {
     await fs.writeFile(file, text.replace(languageSwitch, languageSwitch.replace("center", "left")));
   }, /centered language switch/);
 
+  await expectRejected("readme-centered-logo", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace('<p align="center">', '<p align="left">'));
+  }, /centered application logo/);
+
+  await expectRejected("readme-commented-centered-title", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    const centered = '<h1 align="center">额度助手 v0.2.2</h1>';
+    const visibleLeft = centered.replace("center", "left");
+    await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
+  }, /centered title/);
+
+  await expectRejected("readme-commented-centered-logo", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    const centered = '<p align="center">\n  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="96" height="96">\n</p>';
+    const visibleLeft = centered.replace("center", "left");
+    await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
+  }, /centered application logo/);
+
+  await expectRejected("readme-commented-centered-language-switch", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    const centered = '<p align="center">\n  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>\n</p>';
+    const visibleLeft = centered.replace("center", "left");
+    await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
+  }, /centered language switch/);
+
   await expectRejected("image-editor-metadata", async (directory) => {
     const file = path.join(directory, "docs/assets/claude-connect.jpg");
     const bytes = await fs.readFile(file);
@@ -111,7 +141,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (13/13).");
+  console.log("Release governance adversarial tests passed (17/17).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

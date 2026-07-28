@@ -204,17 +204,18 @@ for (const readmeName of readmes) {
     continue;
   }
   const content = fs.readFileSync(readmePath, "utf8");
+  const visibleContent = content.replace(/<!--[\s\S]*?-->/g, "");
   if (readmeDraftMarkers[readmeName].some((pattern) => pattern.test(content))) {
     fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
   }
   const productName = readmeName === "README.md" ? "额度助手" : "Quota Assistant";
-  if (!content.includes(`<h1 align="center">${productName} v${packageVersion}</h1>`)) {
+  if (!visibleContent.includes(`<h1 align="center">${productName} v${packageVersion}</h1>`)) {
     fail(`${readmeName}: centered title does not match package version ${packageVersion}`);
   }
-  if (!/<p align="center">\s*<img src="src-tauri\/icons\/icon\.png"[^>]*>\s*<\/p>/.test(content)) {
+  if (!/<p align="center">\s*<img src="src-tauri\/icons\/icon\.png"[^>]*>\s*<\/p>/.test(visibleContent)) {
     fail(`${readmeName}: centered application logo is missing`);
   }
-  if (!/<p align="center">\s*<a href="README\.md">简体中文<\/a>\s*·\s*<a href="README\.en\.md">English<\/a>\s*<\/p>/.test(content)) {
+  if (!/<p align="center">\s*<a href="README\.md">简体中文<\/a>\s*·\s*<a href="README\.en\.md">English<\/a>\s*<\/p>/.test(visibleContent)) {
     fail(`${readmeName}: centered language switch is missing`);
   }
   for (const required of [
