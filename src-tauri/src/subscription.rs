@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{self, File, OpenOptions},
     io::{ErrorKind, Write},
     path::Path,
@@ -17,8 +18,9 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{
-    webview::NewWindowResponse, AppHandle, Emitter, Manager, State, Url, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder, WindowEvent,
+    webview::{NewWindowResponse, PageLoadEvent},
+    AppHandle, Emitter, Manager, State, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    WindowEvent,
 };
 
 use crate::{claude_auth, codex, models::SubscriptionSnapshot, AppState};
@@ -33,6 +35,7 @@ const READER_TIMEOUT: Duration = Duration::from_secs(12);
 const OFFICIAL_REQUEST_TIMEOUT: Duration = Duration::from_secs(12);
 const MAX_OFFICIAL_RESPONSE_BYTES: usize = 1024 * 1024;
 const APPLE_MESSAGE_SCHEME: &str = "quota-assistant-apple";
+const APPLE_WINDOW_LABEL: &str = "subscription-reader-apple";
 const CACHE_SCHEMA_VERSION: u8 = 1;
 const MAX_CACHE_BYTES: u64 = 256 * 1024;
 
@@ -80,6 +83,20 @@ pub(crate) enum LoginProvider {
     Google,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct LoginNavigationState {
+    provider: LoginProvider,
+    requested_url: Url,
+    finished_url: Option<Url>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LoginPageFinish {
+    Recorded,
+    Stale,
+    Invalid,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct AppleSubscriptionRecord {
@@ -104,6 +121,8 @@ struct SubscriptionLoginEnded {
 
 static APPLE_MESSAGE: OnceLock<Arc<Mutex<Option<AppleSubscriptionPayload>>>> = OnceLock::new();
 static ACTIVE_LOGIN_PROVIDER: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+static LOGIN_NAVIGATION_STATES: OnceLock<Mutex<HashMap<String, LoginNavigationState>>> =
+    OnceLock::new();
 static CACHE_WRITE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static CACHE_WRITE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -115,6 +134,108 @@ fn apple_message_store() -> Arc<Mutex<Option<AppleSubscriptionPayload>>> {
 
 fn active_login_provider() -> &'static Mutex<Option<String>> {
     ACTIVE_LOGIN_PROVIDER.get_or_init(|| Mutex::new(None))
+}
+
+fn login_navigation_states() -> &'static Mutex<HashMap<String, LoginNavigationState>> {
+    LOGIN_NAVIGATION_STATES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn canonical_login_url(provider: LoginProvider, url: &Url) -> Option<Url> {
+    if !login_url_is_allowed(provider, url) || login_url_reports_error(url) {
+        return None;
+    }
+    if is_safe_blank(url) {
+        return Some(url.clone());
+    }
+    let mut canonical = url.clone();
+    canonical.set_query(None);
+    canonical.set_fragment(None);
+    canonical.set_port(None).ok()?;
+    Some(canonical)
+}
+
+fn register_login_navigation(label: &str, provider: LoginProvider, url: &Url) -> bool {
+    let Some(canonical) = canonical_login_url(provider, url) else {
+        return false;
+    };
+    let Ok(mut states) = login_navigation_states().lock() else {
+        return false;
+    };
+    states.insert(
+        label.to_string(),
+        LoginNavigationState {
+            provider,
+            requested_url: canonical,
+            finished_url: None,
+        },
+    );
+    true
+}
+
+fn record_login_navigation(label: &str, provider: LoginProvider, url: &Url) -> bool {
+    let Some(canonical) = canonical_login_url(provider, url) else {
+        return false;
+    };
+    let Ok(mut states) = login_navigation_states().lock() else {
+        return false;
+    };
+    let Some(state) = states.get_mut(label) else {
+        return false;
+    };
+    if state.provider != provider {
+        return false;
+    }
+    state.requested_url = canonical;
+    state.finished_url = None;
+    true
+}
+
+fn record_login_page_finished(label: &str, provider: LoginProvider, url: &Url) -> LoginPageFinish {
+    let Some(canonical) = canonical_login_url(provider, url) else {
+        return LoginPageFinish::Invalid;
+    };
+    let Ok(mut states) = login_navigation_states().lock() else {
+        return LoginPageFinish::Invalid;
+    };
+    let Some(state) = states.get_mut(label) else {
+        return LoginPageFinish::Invalid;
+    };
+    if state.provider != provider {
+        return LoginPageFinish::Invalid;
+    }
+    if state.requested_url != canonical {
+        return LoginPageFinish::Stale;
+    }
+    state.finished_url = Some(canonical);
+    LoginPageFinish::Recorded
+}
+
+fn login_navigation_state(label: &str, provider: LoginProvider) -> Option<LoginNavigationState> {
+    login_navigation_states()
+        .lock()
+        .ok()
+        .and_then(|states| states.get(label).cloned())
+        .filter(|state| {
+            state.provider == provider
+                && canonical_login_url(provider, &state.requested_url)
+                    .is_some_and(|url| url == state.requested_url)
+                && state.finished_url.as_ref().is_none_or(|url| {
+                    canonical_login_url(provider, url).is_some_and(|canonical| canonical == *url)
+                })
+        })
+}
+
+fn forget_login_navigation(label: &str) {
+    if let Ok(mut states) = login_navigation_states().lock() {
+        states.remove(label);
+    }
+}
+
+fn destroy_login_window(app: &AppHandle, label: &str) {
+    forget_login_navigation(label);
+    if let Some(window) = app.get_webview_window(label) {
+        let _ = window.destroy();
+    }
 }
 
 fn begin_login(provider: &str) {
@@ -162,9 +283,7 @@ fn finish_ready_login(app: &AppHandle, values: &[SubscriptionSnapshot]) {
         "subscription-login-chatgpt",
         "claude-auth",
     ] {
-        if let Some(window) = app.get_webview_window(label) {
-            let _ = window.destroy();
-        }
+        destroy_login_window(app, label);
     }
 }
 
@@ -526,7 +645,7 @@ fn persist_cache(path: &Path, values: &[SubscriptionSnapshot]) -> Result<(), Str
     Ok(())
 }
 
-fn external_window(
+pub(crate) fn external_window(
     app: &AppHandle,
     label: &str,
     title: &str,
@@ -535,25 +654,24 @@ fn external_window(
     provider: LoginProvider,
 ) -> Result<WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(label) {
-        if window
-            .url()
-            .ok()
-            .is_some_and(|current| login_url_is_allowed(provider, &current))
-        {
+        if login_navigation_state(label, provider).is_some() {
             return Ok(window);
         }
-        let _ = window.destroy();
+        finish_login(app, "failed");
+        destroy_login_window(app, label);
     }
     let parsed = url.parse().map_err(|_| "官方页面地址无效".to_string())?;
-    if !login_url_is_allowed(provider, &parsed) {
+    if !register_login_navigation(label, provider, &parsed) {
         return Err("官方页面地址无效".to_string());
     }
     let navigation_app = app.clone();
+    let page_load_app = app.clone();
     let new_window_app = app.clone();
     let navigation_label = label.to_string();
+    let page_load_label = label.to_string();
     let new_window_label = label.to_string();
     let apple_messages = apple_message_store();
-    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed))
+    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed.clone()))
         .title(title)
         .inner_size(920.0, 780.0)
         .min_inner_size(720.0, 620.0)
@@ -567,51 +685,82 @@ fn external_window(
                     }
                 } else {
                     finish_login(&navigation_app, "failed");
-                    if let Some(window) = navigation_app.get_webview_window(&navigation_label) {
-                        let _ = window.destroy();
-                    }
+                    destroy_login_window(&navigation_app, &navigation_label);
                 }
                 return false;
             }
-            let allowed = login_url_is_allowed(provider, target);
-            let reports_error = login_url_reports_error(target);
-            if !allowed || reports_error {
+            let allowed = record_login_navigation(&navigation_label, provider, target);
+            if !allowed {
                 finish_login(&navigation_app, "failed");
-                if let Some(window) = navigation_app.get_webview_window(&navigation_label) {
-                    let _ = window.destroy();
+                destroy_login_window(&navigation_app, &navigation_label);
+            }
+            allowed
+        })
+        .on_page_load(move |_, payload| {
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            match record_login_page_finished(&page_load_label, provider, payload.url()) {
+                LoginPageFinish::Recorded | LoginPageFinish::Stale => {}
+                LoginPageFinish::Invalid => {
+                    finish_login(&page_load_app, "failed");
+                    destroy_login_window(&page_load_app, &page_load_label);
                 }
             }
-            allowed && !reports_error
         })
         .on_new_window(move |_, _| {
             finish_login(&new_window_app, "failed");
-            if let Some(window) = new_window_app.get_webview_window(&new_window_label) {
-                let _ = window.destroy();
-            }
+            destroy_login_window(&new_window_app, &new_window_label);
             NewWindowResponse::Deny
         });
     if provider == LoginProvider::Apple {
         builder = builder.initialization_script(APPLE_READER_SCRIPT);
     }
-    let window = builder
-        .build()
-        .map_err(|_| "无法打开官方订阅页面".to_string())?;
+    let window = match builder.build() {
+        Ok(window) => window,
+        Err(_) => {
+            forget_login_navigation(label);
+            return Err("无法打开官方订阅页面".to_string());
+        }
+    };
     let close_app = app.clone();
     let close_window = window.clone();
+    let close_label = label.to_string();
     window.on_window_event(move |event| {
         if let WindowEvent::CloseRequested { api, .. } = event {
             api.prevent_close();
             finish_login(&close_app, "cancelled");
+            forget_login_navigation(&close_label);
             let _ = close_window.destroy();
         }
     });
     Ok(window)
 }
 
+pub(crate) fn navigate_login_window(
+    window: &WebviewWindow,
+    label: &str,
+    provider: LoginProvider,
+    url: &str,
+) -> Result<(), String> {
+    let parsed = url
+        .parse::<Url>()
+        .map_err(|_| "官方登录地址无效".to_string())?;
+    if !record_login_navigation(label, provider, &parsed) {
+        return Err("官方登录地址无效".to_string());
+    }
+    if window.navigate(parsed).is_err() {
+        forget_login_navigation(label);
+        let _ = window.destroy();
+        return Err("无法打开官方登录页面".to_string());
+    }
+    Ok(())
+}
+
 fn apple_reader(app: &AppHandle) -> Result<WebviewWindow, String> {
     external_window(
         app,
-        "subscription-reader-apple",
+        APPLE_WINDOW_LABEL,
         "额度助手 · Apple 订阅登录",
         APPLE_ACCOUNT_URL,
         false,
@@ -849,61 +998,72 @@ fn parse_apple_item(
 
 async fn apple_subscriptions(app: &AppHandle) -> Option<AppleSubscriptionPayload> {
     let window = apple_reader(app).ok()?;
-    let current_url = window.url().ok()?;
-    if !login_url_is_allowed(LoginProvider::Apple, &current_url) {
-        finish_login(app, "failed");
-        let _ = window.destroy();
-        return None;
-    }
-    let on_reader = current_url.host_str() == Some("apps.apple.com")
-        && current_url.path() == "/includes/commerce/subscriptions";
-    if !on_reader {
-        if current_url.host_str() != Some("account.apple.com") {
-            return None;
-        }
-        if let Ok(mut message) = apple_message_store().lock() {
-            *message = None;
-        }
-        if window.navigate(APPLE_READER_URL.parse().ok()?).is_err() {
-            finish_login(app, "failed");
-            let _ = window.destroy();
-            return None;
-        }
-    } else if let Ok(mut message) = apple_message_store().lock() {
+    if let Ok(mut message) = apple_message_store().lock() {
         *message = None;
-        drop(message);
-        if window.eval(APPLE_READER_SCRIPT).is_err() {
-            finish_login(app, "failed");
-            let _ = window.destroy();
-            return None;
-        }
     }
     let started = std::time::Instant::now();
+    let mut reader_script_evaluated = false;
     while started.elapsed() < READER_TIMEOUT {
+        if app.get_webview_window(APPLE_WINDOW_LABEL).is_none() {
+            forget_login_navigation(APPLE_WINDOW_LABEL);
+            return None;
+        }
         let payload = apple_message_store()
             .lock()
             .ok()
             .and_then(|mut message| message.take());
         if let Some(payload) = payload {
             finish_login(app, "success");
-            let _ = window.destroy();
+            destroy_login_window(app, APPLE_WINDOW_LABEL);
             return Some(payload);
         }
-        let current = window.url().ok()?;
-        if !login_url_is_allowed(LoginProvider::Apple, &current) {
+
+        let Some(state) = login_navigation_state(APPLE_WINDOW_LABEL, LoginProvider::Apple) else {
             finish_login(app, "failed");
-            let _ = window.destroy();
+            destroy_login_window(app, APPLE_WINDOW_LABEL);
             return None;
-        }
-        if current.host_str() != Some("apps.apple.com")
-            || current.path() != "/includes/commerce/subscriptions"
-        {
-            return None;
+        };
+        if let Some(finished) = state.finished_url {
+            let on_reader = finished.host_str() == Some("apps.apple.com")
+                && finished.path() == "/includes/commerce/subscriptions";
+            if on_reader {
+                if !reader_script_evaluated {
+                    if window.eval(APPLE_READER_SCRIPT).is_err() {
+                        finish_login(app, "failed");
+                        destroy_login_window(app, APPLE_WINDOW_LABEL);
+                        return None;
+                    }
+                    reader_script_evaluated = true;
+                }
+            } else if finished.host_str() == Some("account.apple.com") {
+                if navigate_login_window(
+                    &window,
+                    APPLE_WINDOW_LABEL,
+                    LoginProvider::Apple,
+                    APPLE_READER_URL,
+                )
+                .is_err()
+                {
+                    finish_login(app, "failed");
+                    destroy_login_window(app, APPLE_WINDOW_LABEL);
+                    return None;
+                }
+                reader_script_evaluated = false;
+            } else {
+                return None;
+            }
         }
         tokio::time::sleep(Duration::from_millis(180)).await;
     }
-    finish_login(app, "failed");
-    let _ = window.destroy();
+    let timed_out_on_reader = login_navigation_state(APPLE_WINDOW_LABEL, LoginProvider::Apple)
+        .is_some_and(|state| {
+            state.requested_url.host_str() == Some("apps.apple.com")
+                && state.requested_url.path() == "/includes/commerce/subscriptions"
+        });
+    if timed_out_on_reader {
+        finish_login(app, "failed");
+        destroy_login_window(app, APPLE_WINDOW_LABEL);
+    }
     None
 }
 
@@ -1083,7 +1243,15 @@ pub async fn open_subscription_login(provider: String, app: AppHandle) -> Result
     let source = current_source(&provider).await;
     begin_login(&provider);
     let opened = match source {
-        BillingSource::Apple => apple_reader(&app).map(|window| (window, APPLE_ACCOUNT_URL, true)),
+        BillingSource::Apple => apple_reader(&app).map(|window| {
+            (
+                window,
+                APPLE_WINDOW_LABEL,
+                LoginProvider::Apple,
+                APPLE_ACCOUNT_URL,
+                true,
+            )
+        }),
         BillingSource::Google => external_window(
             &app,
             "subscription-login-google",
@@ -1092,9 +1260,26 @@ pub async fn open_subscription_login(provider: String, app: AppHandle) -> Result
             false,
             LoginProvider::Google,
         )
-        .map(|window| (window, GOOGLE_SUBSCRIPTIONS_URL, false)),
-        BillingSource::Web if provider == "claude" => claude_auth::ensure_auth_window(&app)
-            .map(|window| (window, "https://claude.ai/settings/billing", false)),
+        .map(|window| {
+            (
+                window,
+                "subscription-login-google",
+                LoginProvider::Google,
+                GOOGLE_SUBSCRIPTIONS_URL,
+                false,
+            )
+        }),
+        BillingSource::Web if provider == "claude" => {
+            claude_auth::ensure_auth_window(&app).map(|window| {
+                (
+                    window,
+                    claude_auth::WINDOW_LABEL,
+                    LoginProvider::Claude,
+                    "https://claude.ai/settings/billing",
+                    false,
+                )
+            })
+        }
         BillingSource::Web => external_window(
             &app,
             "subscription-login-chatgpt",
@@ -1103,7 +1288,15 @@ pub async fn open_subscription_login(provider: String, app: AppHandle) -> Result
             false,
             LoginProvider::ChatGpt,
         )
-        .map(|window| (window, "https://chatgpt.com/#settings/Subscription", false)),
+        .map(|window| {
+            (
+                window,
+                "subscription-login-chatgpt",
+                LoginProvider::ChatGpt,
+                "https://chatgpt.com/#settings/Subscription",
+                false,
+            )
+        }),
         BillingSource::Unknown if provider == "claude" => {
             if let Err(error) = claude_auth::connect_claude(app.clone()).await {
                 finish_login(&app, "failed");
@@ -1119,33 +1312,40 @@ pub async fn open_subscription_login(provider: String, app: AppHandle) -> Result
             false,
             LoginProvider::ChatGpt,
         )
-        .map(|window| (window, CHATGPT_LOGIN_URL, false)),
+        .map(|window| {
+            (
+                window,
+                "subscription-login-chatgpt",
+                LoginProvider::ChatGpt,
+                CHATGPT_LOGIN_URL,
+                false,
+            )
+        }),
     };
-    let (window, url, keep_apple_flow) = match opened {
+    let (window, label, login_provider, url, keep_apple_flow) = match opened {
         Ok(value) => value,
         Err(error) => {
             finish_login(&app, "failed");
             return Err(error);
         }
     };
+    let Some(navigation) = login_navigation_state(label, login_provider) else {
+        finish_login(&app, "failed");
+        destroy_login_window(&app, label);
+        return Err("官方登录状态无效".to_string());
+    };
     let preserve_current_page = keep_apple_flow
-        && window.url().ok().is_some_and(|current| {
-            login_url_is_allowed(LoginProvider::Apple, &current)
-                && !(current.host_str() == Some("apps.apple.com")
-                    && current.path() == "/includes/commerce/subscriptions")
-        });
-    if !preserve_current_page
-        && window
-            .navigate(url.parse().map_err(|_| "官方登录地址无效".to_string())?)
-            .is_err()
+        && !(navigation.requested_url.host_str() == Some("apps.apple.com")
+            && navigation.requested_url.path() == "/includes/commerce/subscriptions");
+    if !preserve_current_page && navigate_login_window(&window, label, login_provider, url).is_err()
     {
         finish_login(&app, "failed");
-        let _ = window.destroy();
+        destroy_login_window(&app, label);
         return Err("无法打开官方登录页面".to_string());
     }
     if window.show().is_err() || window.set_focus().is_err() {
         finish_login(&app, "failed");
-        let _ = window.destroy();
+        destroy_login_window(&app, label);
         return Err("无法显示官方登录页面".to_string());
     }
     Ok(())
@@ -1342,6 +1542,88 @@ mod tests {
         assert!(url.query().is_none());
         assert!(url.fragment().is_none());
         assert!(url.username().is_empty());
+    }
+
+    #[test]
+    fn login_navigation_state_requires_a_finished_allowed_page_and_forgets_secrets() {
+        let label = "test-login-navigation-state";
+        forget_login_navigation(label);
+        let initial = Url::parse("https://chatgpt.com/auth/login").unwrap();
+        assert!(register_login_navigation(
+            label,
+            LoginProvider::ChatGpt,
+            &initial
+        ));
+        assert!(login_navigation_state(label, LoginProvider::ChatGpt)
+            .unwrap()
+            .finished_url
+            .is_none());
+
+        let callback = Url::parse(
+            "https://auth.openai.com/callback?code=secret-code&state=person@example.com#private",
+        )
+        .unwrap();
+        assert!(record_login_navigation(
+            label,
+            LoginProvider::ChatGpt,
+            &callback
+        ));
+        let requested = login_navigation_state(label, LoginProvider::ChatGpt)
+            .unwrap()
+            .requested_url;
+        assert_eq!(requested.as_str(), "https://auth.openai.com/callback");
+        assert!(requested.query().is_none());
+        assert!(requested.fragment().is_none());
+        assert!(!requested.as_str().contains("secret-code"));
+        assert!(!requested.as_str().contains('@'));
+
+        assert_eq!(
+            record_login_page_finished(label, LoginProvider::ChatGpt, &initial),
+            LoginPageFinish::Stale
+        );
+        assert_eq!(
+            record_login_page_finished(label, LoginProvider::ChatGpt, &callback),
+            LoginPageFinish::Recorded
+        );
+        assert_eq!(
+            login_navigation_state(label, LoginProvider::ChatGpt)
+                .unwrap()
+                .finished_url,
+            Some(requested)
+        );
+        assert!(!record_login_navigation(
+            label,
+            LoginProvider::Claude,
+            &Url::parse("https://claude.ai/login").unwrap()
+        ));
+        assert!(!record_login_navigation(
+            label,
+            LoginProvider::ChatGpt,
+            &Url::parse("https://chatgpt.com/auth/login?error=denied").unwrap()
+        ));
+        assert!(!record_login_navigation(
+            "unknown-login-window",
+            LoginProvider::ChatGpt,
+            &initial
+        ));
+        assert_eq!(
+            record_login_page_finished("unknown-login-window", LoginProvider::ChatGpt, &initial),
+            LoginPageFinish::Invalid
+        );
+        forget_login_navigation(label);
+        assert!(login_navigation_state(label, LoginProvider::ChatGpt).is_none());
+    }
+
+    #[test]
+    fn external_login_lifecycle_never_queries_a_webview_window_url() {
+        let subscription_source = include_str!("subscription.rs");
+        let claude_source = include_str!("claude_auth.rs");
+        let forbidden = ["window", ".url", "()"].concat();
+        assert!(!subscription_source.contains(&forbidden));
+        assert!(!claude_source.contains(&forbidden));
+        assert!(subscription_source.contains("PageLoadEvent::Finished"));
+        assert!(subscription_source.contains("started.elapsed() < READER_TIMEOUT"));
+        assert!(subscription_source.contains("get_webview_window(APPLE_WINDOW_LABEL).is_none()"));
     }
 
     #[test]
