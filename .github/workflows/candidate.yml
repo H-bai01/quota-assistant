@@ -1,0 +1,154 @@
+name: Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer without the v prefix; must match all application manifests
+        required: true
+        type: string
+      candidate_commit:
+        description: Exact 40-character commit SHA to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-${{ inputs.candidate_commit }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 20.19.0
+
+jobs:
+  verify:
+    name: Verify source and release governance
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.candidate_commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Validate exact commit and version
+        env:
+          VERSION: ${{ inputs.version }}
+          CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
+        run: |
+          node scripts/validate-release-request.mjs --version "$VERSION" --commit "$CANDIDATE_COMMIT"
+          npm run version:check -- --tag "v$VERSION"
+          node scripts/check-release-governance.mjs
+          node scripts/check-release-governance.selftest.mjs
+          node scripts/release-artifacts.selftest.mjs
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+      - run: node scripts/check-node-licenses.mjs
+      - name: Install exact toolchain from rust-toolchain.toml
+        run: rustc --version
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+        with:
+          workspaces: src-tauri
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Install pinned Rust audit tools
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo install cargo-deny --version 0.20.2 --locked
+      - run: cargo audit --file src-tauri/Cargo.lock
+      - run: cargo deny --manifest-path src-tauri/Cargo.toml check advisories licenses
+
+  build-windows:
+    name: Build unsigned Windows candidate
+    needs: verify
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.candidate_commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install exact toolchain from rust-toolchain.toml
+        run: rustc --version
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: npm run tauri -- build --bundles nsis
+      - name: Normalize candidate names, SBOM and manifest
+        run: node scripts/prepare-candidate.mjs --platform windows --version "${{ inputs.version }}" --output candidate-output
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quota-assistant-candidate-windows
+          path: candidate-output/*
+          if-no-files-found: error
+          retention-days: 14
+
+  build-macos:
+    name: Build unsigned macOS Universal candidate
+    needs: verify
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.candidate_commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install exact toolchain from rust-toolchain.toml
+        run: rustc --version
+      - name: Install pinned macOS targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: npm run tauri -- build --target universal-apple-darwin --bundles dmg
+      - name: Normalize candidate names, SBOM and manifest
+        run: node scripts/prepare-candidate.mjs --platform macos --version "${{ inputs.version }}" --output candidate-output
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quota-assistant-candidate-macos
+          path: candidate-output/*
+          if-no-files-found: error
+          retention-days: 14
+
+  attest:
+    name: Attest candidate artifacts
+    needs:
+      - build-windows
+      - build-macos
+    runs-on: ubuntu-24.04
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: quota-assistant-candidate-*
+          path: candidate
+          merge-multiple: true
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-path: candidate/**/*

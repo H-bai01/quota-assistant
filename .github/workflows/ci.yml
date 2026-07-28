@@ -2,55 +2,84 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 20.19.0
+  CARGO_AUDIT_VERSION: 0.22.2
+  CARGO_DENY_VERSION: 0.20.2
 
 jobs:
-  frontend:
-    runs-on: ubuntu-latest
+  governance:
+    name: Release governance guard
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: node scripts/check-release-governance.mjs
+      - run: node scripts/check-release-governance.selftest.mjs
+      - run: node scripts/release-artifacts.selftest.mjs
+
+  frontend:
+    name: Frontend tests, build, audit and licenses
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npm audit --audit-level=high
+      - name: Reject high or critical npm advisories
+        run: npm audit --audit-level=high
+      - name: Enforce npm license policy
+        run: node scripts/check-node-licenses.mjs
 
-  desktop:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact-name: quota-assistant-windows-unsigned
-            build-command: npm run tauri -- build --bundles nsis
-            artifact-path: src-tauri/target/release/bundle/nsis/**
-          - os: macos-latest
-            artifact-name: quota-assistant-macos-universal-unsigned
-            build-command: npm run tauri -- build --target universal-apple-darwin
-            artifact-path: src-tauri/target/universal-apple-darwin/release/bundle/**
-    runs-on: ${{ matrix.os }}
+  rust:
+    name: Rust tests, format, Clippy, advisories and licenses
+    runs-on: macos-14
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          node-version: 22
-          cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install macOS universal targets
-        if: runner.os == 'macOS'
-        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
-      - uses: Swatinem/rust-cache@v2
+          persist-credentials: false
+      - name: Install exact toolchain from rust-toolchain.toml
+        run: rustc --version
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           workspaces: src-tauri
-      - run: npm ci
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-      - run: ${{ matrix.build-command }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}
-          path: ${{ matrix.artifact-path }}
-          if-no-files-found: error
-          retention-days: 14
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Install pinned Rust audit tools
+        run: |
+          cargo install cargo-audit --version "$CARGO_AUDIT_VERSION" --locked
+          cargo install cargo-deny --version "$CARGO_DENY_VERSION" --locked
+      - name: Reject known Rust vulnerabilities in the complete lockfile
+        run: cargo audit --file src-tauri/Cargo.lock
+      - name: Enforce supported-target Rust advisory and license policy
+        run: cargo deny --manifest-path src-tauri/Cargo.toml check advisories licenses
