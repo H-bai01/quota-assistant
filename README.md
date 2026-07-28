@@ -53,10 +53,10 @@
 ## 升级、卸载与回退
 
 - 升级：退出旧版本后安装新版；相同应用标识会覆盖应用本体，并保留本机偏好和最小化订阅摘要。
-- 卸载前：先退出额度助手，并关闭其开机启动项。
+- 卸载前：先在额度助手里关闭开机启动，再退出应用。必要时额外检查系统启动项：macOS 前往“系统设置 → 通用 → 登录项”，Windows 前往“设置 → 应用 → 启动”。
 - macOS 卸载：从“应用程序”中删除“额度助手”。
 - Windows 卸载：前往“设置 → 应用 → 已安装的应用”，找到“额度助手”并选择卸载。
-- 彻底清除：普通卸载后，再删除应用标识 `app.quotaassistant.desktop` 对应的应用配置/数据目录：macOS 为 `~/Library/Application Support/app.quotaassistant.desktop`，Windows 为 `%APPDATA%\app.quotaassistant.desktop`。彻底清除会删除偏好、WebView 登录会话与订阅摘要，且不可恢复。
+- 彻底清除：退出应用并完成普通卸载后，分别删除以下目录：macOS 配置目录 `~/Library/Application Support/app.quotaassistant.desktop`、macOS WebView 目录 `~/Library/WebKit/app.quotaassistant.desktop`；Windows 配置目录 `%APPDATA%\app.quotaassistant.desktop`、Windows WebView 目录 `%LOCALAPPDATA%\app.quotaassistant.desktop`。配置目录保存偏好与订阅摘要，WebView 目录保存登录会话；两者用途不同，必须分别处理。删除后不可恢复。
 - 回退：退出当前版本，重新安装上一版安装包。数据格式不保证向旧版本兼容；如旧版启动异常，应先备份后清除应用数据再启动。
 - 当前没有启用自动更新。请只从同一 GitHub 仓库的正式 Release 获取升级或回退包。
 
