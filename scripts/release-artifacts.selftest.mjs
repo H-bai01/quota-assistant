@@ -142,6 +142,29 @@ try {
   ], { cwd: root, encoding: "utf8" });
   assert.equal(request.status, 0, request.stderr);
 
+  const readmeGateRoot = path.join(temporaryRoot, "readme-gate");
+  await fs.mkdir(path.join(readmeGateRoot, "scripts"), { recursive: true });
+  for (const file of ["package.json", "README.md", "README.en.md"]) {
+    await fs.copyFile(path.join(root, file), path.join(readmeGateRoot, file));
+  }
+  await fs.copyFile(
+    path.join(root, "scripts/validate-release-request.mjs"),
+    path.join(readmeGateRoot, "scripts/validate-release-request.mjs"),
+  );
+  await fs.appendFile(path.join(readmeGateRoot, "README.md"), "\n本文件是待发布候选。\n");
+  spawnSync("git", ["init", "-q"], { cwd: readmeGateRoot });
+  spawnSync("git", ["config", "user.name", "Release Self-test"], { cwd: readmeGateRoot });
+  spawnSync("git", ["config", "user.email", "release-selftest@example.invalid"], { cwd: readmeGateRoot });
+  spawnSync("git", ["add", "-A"], { cwd: readmeGateRoot });
+  spawnSync("git", ["commit", "-qm", "synthetic release state"], { cwd: readmeGateRoot });
+  const readmeGateHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: readmeGateRoot, encoding: "utf8" }).stdout.trim();
+  const readmeGate = spawnSync(process.execPath, [
+    "scripts/validate-release-request.mjs", "--version", packageVersion,
+    "--commit", readmeGateHead, "--release-tier", "community",
+  ], { cwd: readmeGateRoot, encoding: "utf8" });
+  assert.notEqual(readmeGate.status, 0, "Candidate README wording unexpectedly passed");
+  assert.match(readmeGate.stderr, /candidate or not-yet-released wording/i);
+
   const draftNotesRequest = spawnSync(process.execPath, [
     "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", head,
     "--release-tier", "community", "--notes", `docs/releases/v${packageVersion}.md`,

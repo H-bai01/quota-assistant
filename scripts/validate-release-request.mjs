@@ -22,6 +22,20 @@ if (releaseTier !== undefined && releaseTier !== "community") fail("Only the Git
 const head = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim();
 if (head !== commit) fail(`Checked-out commit ${head} does not match requested candidate ${commit}`);
 
+if (releaseTier) {
+  const readmeDraftMarkers = {
+    "README.md": [/候选/, /尚未发布/, /发布后生效/, /待发布/],
+    "README.en.md": [/\bcandidate\b/i, /\bpending\b/i, /not (?:yet )?released/i, /after .*released/i],
+  };
+  for (const [readme, markers] of Object.entries(readmeDraftMarkers)) {
+    if (!fs.existsSync(readme)) fail(`Missing ${readme}`);
+    const content = fs.readFileSync(readme, "utf8");
+    if (markers.some((pattern) => pattern.test(content))) {
+      fail(`${readme} still contains candidate or not-yet-released wording`);
+    }
+  }
+}
+
 if (notes) {
   if (!releaseTier) fail("Release notes validation requires --release-tier community");
   if (!/^docs\/releases\/[a-zA-Z0-9._-]+\.md$/.test(notes)) fail("Release notes must be a simple Markdown file under docs/releases/");

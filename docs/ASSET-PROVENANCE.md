@@ -18,21 +18,27 @@
 
 ## 服务标识
 
-界面中的 Codex 与 Claude 服务标识使用项目自有的纯 CSS 字母标记 `CX` 和 `CL`，不打包任何第三方官方图标。此前来源无法证明可再分发的本机复制图标已经删除。
+按用户确认的产品决定，界面恢复项目历史中原本使用的 Codex 与 Claude 可识别工具图标。以下资源用于兼容服务识别，不代表官方授权或背书；其原始上游下载地址和独立再分发许可没有留存在项目历史中，因此不得把它们表述为项目自有或 MIT 许可资产。
+
+| 文件 | SHA-256 | 来源与历史 | 用途 | 权利状态 |
+|---|---|---|---|---|
+| `Codex.png` | `f33042b1a549fdc2c82b20e8eefa1fd5ac9f93147af40389c4773aaf48d097a7` | 项目提交 `5247123027f7a052729e1dc7ce0f609ffc817567` 已包含；本轮从删除提交 `51f54b9` 的父提交原样恢复。原始上游 URL/版本未记录 | 展开界面的 Codex 服务图标 | 第三方商标识别资产；未独立确认再分发许可 |
+| `codex.svg` | `1111bb21eef02e1f2dfb83fb83db5aa47fe3adab2ff96cdf0ae35e4000dbddb7` | 项目提交 `5247123027f7a052729e1dc7ce0f609ffc817567` 已包含；本轮从删除提交 `51f54b9` 的父提交原样恢复。原始上游 URL/版本未记录 | 紧凑界面的 Codex 服务图标 | 第三方商标识别资产；未独立确认再分发许可 |
+| `claude.png` | `ca63a0c024b31485d7cc9b4eb523939d9e6365b5a32a6c392f37cc34d548b15c` | 项目提交 `a62b69199b3a82c3caec89c3f72b1b0402a6a3f1` 引入；同期设计记录说明来自本机已安装的 Claude 官方应用。本轮从删除提交 `51f54b9` 的父提交恢复像素内容，并清除了内嵌 EXIF。上游 URL/版本未记录 | 紧凑及展开界面的 Claude 服务图标 | 第三方商标识别资产；未独立确认再分发许可 |
 
 服务名称只用于说明兼容的数据来源。本项目不是 OpenAI、Anthropic、Apple 或 Google 的官方产品，也未获得这些公司的授权或背书。相关名称和商标归各自权利人所有。
 
 ## README 界面资料
 
-以下资料于 2026-07-28 从 v0.2.2 隔离文档候选生成。`macos-*-real.jpg` 由真实 Tauri macOS 候选窗口采集；其余图片由同一候选前端在浏览器预览模式下使用源码内明确的演示数据渲染。采集前未调用正式账号、登录窗口或真实诊断，图片不包含邮箱、账号、Cookie、令牌、个人路径或用户订阅数据。
+以下资料于 2026-07-28 从 v0.2.2 隔离文档实例生成。先在独立标识 `app.quotaassistant.iconcapture` 的真实 Tauri macOS 窗口核对紧凑与展开界面，再由同一候选前端的文档模式使用源码内演示数据生成公开图片；紧凑图按 2× 像素密度渲染。采集前未调用正式账号、登录窗口或真实诊断，图片不包含邮箱、账号、Cookie、令牌、个人路径或用户订阅数据。全部公开 JPEG 已删除 EXIF、编辑器和注释段。
 
 | 文件 | SHA-256 | 来源与生成方式 | 用途 | 权利状态 |
 |---|---|---|---|---|
-| `docs/assets/macos-compact-real.jpg` | `bc9dc2d365e4b2f8ee586e888a3b4986df573b76cc72a7d3c9ff50a1a12cdcdf` | 隔离标识 `app.quotaassistant.docs` 的本地 v0.2.2 Tauri 文档候选，使用演示数据 | README 紧凑悬浮窗 | 项目自有界面截图，MIT |
-| `docs/assets/macos-expanded-real.jpg` | `963f630964d7496ee96f954aad083cdd24a5566452cf626f40609c1b70be001f` | 同一隔离 Tauri 文档候选展开后的真实窗口 | README 主图 | 项目自有界面截图，MIT |
-| `docs/assets/macos-install-dmg.jpg` | `c1e0a0c557836741bd469794e73c415bd8ff5d667bed0a697704d1cb809dfdae` | 本地 v0.2.2 Universal DMG 在真实 macOS Finder 中打开后的安装窗口 | README macOS 安装说明 | 项目自有安装包界面截图，MIT |
-| `docs/assets/quota-renewal.jpg` | `778071a41a4e0d277f3d00c50e2d63ba2a28d2bdaf8719c53d8a202937d5e44d` | v0.2.2 前端预览，使用源码内演示额度与续期数据 | 双服务额度、重置和续期细节 | 项目自有界面截图，MIT |
-| `docs/assets/claude-connect.jpg` | `fcc565083811434fd7fbf704877d2ff1a02f0019b3d3bedc911597f961b259ce` | v0.2.2 前端 `claude-connect` 演示状态 | Claude 首次连接入口 | 项目自有界面截图，MIT |
-| `docs/assets/diagnostics.jpg` | `043c6557d389d8d4985c720775ea1acb4d2733f698c465d9ff0500e8c03bc13a` | v0.2.2 前端脱敏诊断演示状态 | README 诊断说明 | 项目自有界面截图，MIT |
+| `docs/assets/macos-compact-real.jpg` | `c216e1ca49bd94a38b510d27a1d1ed35e1a8c41281ecda79782adaf8a6737755` | 与隔离 Tauri 实例逐项核对后的同源前端紧凑文档模式，240×176（实际展示尺寸 120×88 的 2×），使用演示数据 | README 紧凑悬浮窗 | 项目界面截图；其中服务标识权利状态见上表 |
+| `docs/assets/macos-expanded-real.jpg` | `68b4ca9922f3a827e04dadaaee8aed9cee66a5c8b78ba054c3ef5cf60f820c0d` | 与隔离 Tauri 实例逐项核对后的同源前端展开文档模式，使用演示数据 | README 主图 | 项目界面截图；其中服务标识权利状态见上表 |
+| `docs/assets/macos-install-dmg.jpg` | `471e4e886762526af45b2dbe68d977145e8e38305cbfc8db30549bc8eea1bcef` | 本地 v0.2.2 Universal DMG 在真实 macOS Finder 中打开后的安装窗口；本轮仅清除元数据 | README macOS 安装说明 | 项目自有安装包界面截图，MIT |
+| `docs/assets/quota-renewal.jpg` | `3c297f9d818123e29cbc9e0d87deb1aba1835424314910defc7840bba35b75b6` | v0.2.2 同源前端文档模式，使用源码内演示额度与续期数据 | 双服务额度、重置和续期细节 | 项目界面截图；其中服务标识权利状态见上表 |
+| `docs/assets/claude-connect.jpg` | `594c4610b2f9a84397f7d30968f597c10cb3e763a823fb239f52727c8a191281` | v0.2.2 同源前端 `claude-connect` 演示状态 | Claude 首次连接入口 | 项目界面截图；其中服务标识权利状态见上表 |
+| `docs/assets/diagnostics.jpg` | `6f8e0dfe1bec4ac85f1ff95597389f93b65ed06df4fb015a5a4b710bf832aede` | v0.2.2 前端脱敏诊断演示状态；本轮仅清除元数据 | README 诊断说明 | 项目自有界面截图，MIT |
 
 系统托盘、Gatekeeper 和 Windows SmartScreen 资料只有在能够取得对应真实系统画面且完成隐私复核后才允许加入；不得用设计稿或其他平台画面冒充实机证据。

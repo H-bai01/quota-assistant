@@ -12,9 +12,9 @@
 
 <table>
   <tr>
-    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="macOS 隔离文档候选展开后的 Codex 与 Claude 双服务总览" width="320"></td>
+    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="macOS v0.2.2 展开后的 Codex 与 Claude 双服务总览" width="320"></td>
     <td>
-      <strong>立即下载（v0.2.2 发布后生效）</strong><br><br>
+      <strong>立即下载 v0.2.2</strong><br><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
@@ -26,9 +26,9 @@
 
 ## 立即下载
 
-> **安全提示：v0.2.2 GitHub 社区版计划附件未使用 macOS Developer ID/Apple 公证或 Windows Authenticode 签名。请只从本仓库 Releases 下载，并用 `SHA256SUMS.txt` 核验文件。以下 v0.2.2 直链会在该版本正式发布后生效。**
+> **安全提示：v0.2.2 GitHub 社区版附件未使用 macOS Developer ID/Apple 公证或 Windows Authenticode 签名。请只从本仓库 v0.2.2 Release 下载，并用 `SHA256SUMS.txt` 核验文件。**
 
-| 平台 | 计划附件 | 直接入口 |
+| 平台 | 附件 | 直接入口 |
 | --- | --- | --- |
 | macOS（Universal） | `quota-assistant_0.2.2_macos_universal.dmg` | [下载 DMG](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg) |
 | Windows（x64） | `quota-assistant_0.2.2_windows_x64-setup.exe` | [下载 EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
@@ -70,9 +70,9 @@
 - 紧凑悬浮窗、单击展开、拖动、屏幕边缘吸附、置顶和锁定鼠标穿透。
 - 菜单栏/托盘可显示或隐藏窗口、刷新、切换语言、解除锁定和退出。
 
-![macOS 文档候选的真实紧凑悬浮窗](docs/assets/macos-compact-real.jpg)
+![macOS v0.2.2 的真实紧凑悬浮窗](docs/assets/macos-compact-real.jpg)
 
-拖动、边缘吸附和托盘菜单的系统级画面仍待形成可公开的脱敏证据；Windows 系统托盘画面必须等真实 Windows 验收，项目不会制作假截图。
+本页未提供拖动、边缘吸附和托盘菜单的系统级画面；Windows 系统托盘画面只接受真实 Windows 验收资料，项目不会制作假截图。
 
 ### 3. 本地诊断
 
@@ -82,12 +82,12 @@
 
 ## 平台兼容与签名状态
 
-下表描述 **v0.2.2 候选**，不是对未完成验收的平台作正式支持承诺。
+下表描述 **v0.2.2 GitHub 社区版**，并明确区分安装包、实机验证与签名状态。
 
 | 平台 | 架构 | 计划安装包 | 自动构建 | 安装包实机验证 | 签名/公证 |
 | --- | --- | --- | --- | --- | --- |
-| macOS | Universal（Apple Silicon + Intel） | DMG | 候选门要求通过 | 本轮候选尚待以最终 SHA 记录冷启动、核心流程、退出和卸载 | 未签名、未公证 |
-| Windows | x64 | NSIS EXE | 候选门要求通过 | 尚无本轮真实 Windows 安装包证据；不能写成已正式验证 | 未 Authenticode 签名 |
+| macOS | Universal（Apple Silicon + Intel） | DMG | GitHub Actions | 最终文件的验收记录随 Release 的 `release-gates.json` 提供 | 未签名、未公证 |
+| Windows | x64 | NSIS EXE | GitHub Actions | 未提供真实 Windows 实机验证，不列为已验证支持 | 未 Authenticode 签名 |
 
 GitHub 社区版允许发布未签名附件，但仍必须通过测试、构建、SBOM、attestation、SHA-256、对应平台基本启动验证和醒目风险披露。未来“签名发行版”另行要求 Developer ID + notarization 和 Authenticode。
 
@@ -169,7 +169,7 @@ Get-Content .\SHA256SUMS.txt
 - macOS 卸载：先关闭开机启动并退出，再从“应用程序”删除“额度助手”。
 - Windows 卸载：先关闭开机启动并退出，再从“设置 → 应用 → 已安装的应用”卸载。
 - 清除数据：普通卸载不会自动删除偏好与 WebView 登录会话。彻底清除前请阅读 [PRIVACY.md](PRIVACY.md)；删除配置和 WebView 目录不可恢复。
-- 回退：v0.2.2 尚未发布，不能预先声称降级成功。只有在 v0.2.1 公共附件、校验文件仍可下载，且本次安装包完成实际降级验证后，Release notes 才能把 v0.2.1 写成可验证回退点。
+- 回退：是否可回退到 v0.2.1，以 v0.2.2 Release notes 和 `release-gates.json` 中记录的公共附件、校验和及实际降级验证为准。
 
 ## 本地开发与贡献
 
@@ -184,7 +184,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。当前 v0.2.2 候选自测为前端 20 项、Rust 31 项通过；正式 Release notes 必须以最终候选的重新验收数字为准。
+浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。v0.2.2 的当前测试记录为前端 20 项、Rust 31 项通过；Release notes 记录最终发布提交的验收数字。
 
 贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。当前尚未配置私密漏洞报告入口；不要在公开 Issue 中提交漏洞细节，最新状态见 [SECURITY.md](SECURITY.md)。
 
@@ -192,7 +192,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
 本项目基于 MIT 许可的 [Quota Float](https://github.com/change-42-yhmm/quota-float) 开发。源码同样使用 [MIT License](LICENSE)。
 
-界面使用项目自有中性 `CX` / `CL` 标识，不打包第三方官方图标。逐文件来源、SHA-256 与权利状态见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。
+界面使用项目历史中原有的 Codex 与 Claude 识别图标。逐文件来源、SHA-256、权利状态与不背书说明见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。
 
 本项目不是 OpenAI 或 Anthropic 的官方产品，也未获得其背书。OpenAI、ChatGPT、Codex、Anthropic、Claude、Apple、Google 及相关商标归各自权利人所有。
 
@@ -204,4 +204,4 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 - GitHub 社区版未签名；平台安全提示与较高误报概率属于已知限制。
 - 当前没有安全自动更新通道。
 
-完整列表见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。版本历史与候选 Release notes 位于 [docs/releases/](docs/releases/README.md)。普通问题与功能建议使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)；当前没有可用的私密漏洞报告渠道，启用前不得把漏洞细节放入公开 Issue，状态见 [SECURITY.md](SECURITY.md)。
+完整列表见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。版本历史与 Release notes 位于 [docs/releases/](docs/releases/README.md)。普通问题与功能建议使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)；当前没有可用的私密漏洞报告渠道，启用前不得把漏洞细节放入公开 Issue，状态见 [SECURITY.md](SECURITY.md)。

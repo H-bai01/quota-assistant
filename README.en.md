@@ -12,9 +12,9 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 
 <table>
   <tr>
-    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Codex and Claude overview from the isolated macOS documentation candidate" width="320"></td>
+    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Codex and Claude overview in macOS v0.2.2" width="320"></td>
     <td>
-      <strong>Download now (active after v0.2.2 is released)</strong><br><br>
+      <strong>Download v0.2.2 now</strong><br><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
@@ -26,9 +26,9 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 
 ## Download now
 
-> **Security notice: the planned v0.2.2 GitHub Community packages are not signed with macOS Developer ID/Apple notarization or Windows Authenticode. Download only from this repository's Releases and verify the file with `SHA256SUMS.txt`. The v0.2.2 links below become active only after that version is released.**
+> **Security notice: the v0.2.2 GitHub Community packages are not signed with macOS Developer ID/Apple notarization or Windows Authenticode. Download only from this repository's v0.2.2 Release and verify the file with `SHA256SUMS.txt`.**
 
-| Platform | Planned asset | Direct link |
+| Platform | Asset | Direct link |
 | --- | --- | --- |
 | macOS (Universal) | `quota-assistant_0.2.2_macos_universal.dmg` | [Download DMG](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg) |
 | Windows (x64) | `quota-assistant_0.2.2_windows_x64-setup.exe` | [Download EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
@@ -70,9 +70,9 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 - Compact mode, click-to-expand, drag, edge snap, always-on-top, and click-through lock.
 - The menu bar/system tray can show or hide the widget, refresh, switch language, unlock, and quit.
 
-![Real compact widget from the isolated macOS documentation candidate](docs/assets/macos-compact-real.jpg)
+![Real compact widget in macOS v0.2.2](docs/assets/macos-compact-real.jpg)
 
-System-level drag, edge-snap, and tray-menu images still require privacy-safe public evidence. A Windows tray image remains pending real Windows validation; this project will not fabricate one.
+This page does not include system-level drag, edge-snap, or tray-menu images. A Windows tray image is accepted only from real Windows validation; this project will not fabricate one.
 
 ### 3. Local diagnostics
 
@@ -82,12 +82,12 @@ Diagnostics report only the app version, operating system/architecture, and whet
 
 ## Platform compatibility and signing
 
-This table describes the **v0.2.2 candidate** and does not claim support for a platform whose validation is incomplete.
+This table describes the **v0.2.2 GitHub Community release** and distinguishes package availability, installed-package validation, and signing status.
 
 | Platform | Architecture | Planned package | Automated build | Installed-package validation | Signing/notarization |
 | --- | --- | --- | --- | --- | --- |
-| macOS | Universal (Apple Silicon + Intel) | DMG | Required by the candidate gate | Final-SHA cold start, core flow, quit, and uninstall evidence is still pending for this candidate | Unsigned, not notarized |
-| Windows | x64 | NSIS EXE | Required by the candidate gate | No real Windows evidence exists for this candidate; it must not be described as formally validated | No Authenticode signature |
+| macOS | Universal (Apple Silicon + Intel) | DMG | GitHub Actions | Final-file validation records are provided in the Release `release-gates.json` | Unsigned, not notarized |
+| Windows | x64 | NSIS EXE | GitHub Actions | No real Windows installed-package validation is provided; it is not listed as validated support | No Authenticode signature |
 
 The GitHub Community tier may publish unsigned packages only after tests, builds, SBOM, attestation, SHA-256, platform basic-startup validation, and prominent risk disclosure pass. A future signed-distribution tier additionally requires Developer ID + notarization and Authenticode.
 
@@ -169,7 +169,7 @@ That warning is expected for the unsigned Community tier. Verify the repository 
 - macOS uninstall: disable startup, quit, then remove Quota Assistant from Applications.
 - Windows uninstall: disable startup, quit, then use **Settings → Apps → Installed apps**.
 - Data removal: ordinary uninstall does not remove preferences or WebView sessions. Read [PRIVACY.md](PRIVACY.md) before permanent removal; deleted config and WebView directories cannot be recovered.
-- Rollback: v0.2.2 is not released yet, so rollback success cannot be claimed in advance. Release notes may name v0.2.1 as a verified rollback point only after its public assets/checksums are confirmed and a real downgrade is completed.
+- Rollback: whether v0.2.1 is a verified rollback point is defined by the public assets, checksums, and real downgrade evidence recorded in the v0.2.2 Release notes and `release-gates.json`.
 
 ## Development and contribution
 
@@ -184,7 +184,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-Browser preview uses explicitly labeled sample data. Real quota reads require the Tauri desktop app. The current v0.2.2 candidate self-check passes 20 frontend and 31 Rust tests; final Release notes must use counts from the final candidate rerun.
+Browser preview uses explicitly labeled sample data. Real quota reads require the Tauri desktop app. The current v0.2.2 test record is 20 frontend and 31 Rust tests passing; Release notes record the final release commit's validation counts.
 
 Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md), the [release process](docs/RELEASE.md), [test matrix](docs/TEST-MATRIX.md), and [public repository boundary](docs/PUBLIC-REPOSITORY-BOUNDARY.md). No private vulnerability-reporting channel is configured yet; do not put vulnerability details in public Issues, and check [SECURITY.md](SECURITY.md) for current status.
 
@@ -192,7 +192,7 @@ Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md), the [release proce
 
 This project is based on MIT-licensed [Quota Float](https://github.com/change-42-yhmm/quota-float) and is distributed under the [MIT License](LICENSE).
 
-The UI uses project-owned neutral `CX` / `CL` marks and does not bundle third-party official logos. Per-file origin, SHA-256, and rights status are in [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md).
+The UI uses the project's historical Codex and Claude identification icons. Per-file origin, SHA-256, rights status, and non-endorsement notice are in [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md).
 
 This is not an official OpenAI or Anthropic product and is not endorsed by them. OpenAI, ChatGPT, Codex, Anthropic, Claude, Apple, Google, and related marks belong to their respective owners.
 
@@ -204,4 +204,4 @@ This is not an official OpenAI or Anthropic product and is not endorsed by them.
 - The GitHub Community tier is unsigned; platform warnings and higher false-positive rates are known limitations.
 - No secure automatic update channel is enabled.
 
-See [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md) for the full list. Version history and candidate notes live under [docs/releases/](docs/releases/README.md). Use [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues) for ordinary bugs and feature requests. No private vulnerability-reporting channel is currently available; do not disclose vulnerability details in a public Issue, and check [SECURITY.md](SECURITY.md) for current status.
+See [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md) for the full list. Version history and Release notes live under [docs/releases/](docs/releases/README.md). Use [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues) for ordinary bugs and feature requests. No private vulnerability-reporting channel is currently available; do not disclose vulnerability details in a public Issue, and check [SECURITY.md](SECURITY.md) for current status.

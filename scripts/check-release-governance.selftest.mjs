@@ -84,7 +84,21 @@ try {
     ));
   }, /validators must reject every non-community tier/);
 
-  console.log("Release governance adversarial tests passed (9/9).");
+  await expectRejected("readme-candidate-state", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.en.md"), "\nCandidate release pending.\n");
+  }, /candidate or not-yet-released README wording/);
+
+  await expectRejected("image-editor-metadata", async (directory) => {
+    const file = path.join(directory, "docs/assets/claude-connect.jpg");
+    const bytes = await fs.readFile(file);
+    const exifSegment = Buffer.concat([
+      Buffer.from([0xff, 0xe1, 0x00, 0x08]),
+      Buffer.from("Exif\0\0", "latin1"),
+    ]);
+    await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
+  }, /EXIF, editor, comment, or personal metadata/);
+
+  console.log("Release governance adversarial tests passed (11/11).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

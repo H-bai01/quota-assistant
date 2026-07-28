@@ -6,6 +6,46 @@ const root = process.cwd();
 const failures = [];
 const fail = (message) => failures.push(message);
 
+function inspectPublicImageMetadata(file, bytes) {
+  if (/\.jpe?g$/i.test(file)) {
+    let offset = 2;
+    while (offset + 3 < bytes.length && bytes[offset] === 0xff) {
+      const marker = bytes[offset + 1];
+      if (marker === 0xda || marker === 0xd9) break;
+      if (marker >= 0xd0 && marker <= 0xd7) {
+        offset += 2;
+        continue;
+      }
+      const length = bytes.readUInt16BE(offset + 2);
+      if (length < 2 || offset + 2 + length > bytes.length) break;
+      if ([0xe1, 0xed, 0xfe].includes(marker)) {
+        fail(`${file}: public image contains EXIF, editor, comment, or personal metadata`);
+        return;
+      }
+      offset += 2 + length;
+    }
+    const ascii = bytes.toString("latin1");
+    if (/Exif\0\0|Photoshop 3\.0|http:\/\/ns\.adobe\.com\/xap|<x:xmpmeta/i.test(ascii)) {
+      fail(`${file}: public image contains EXIF or editor metadata`);
+    }
+    return;
+  }
+  if (/\.png$/i.test(file)) {
+    const forbidden = new Set(["eXIf", "tEXt", "zTXt", "iTXt", "tIME"]);
+    let offset = 8;
+    while (offset + 12 <= bytes.length) {
+      const length = bytes.readUInt32BE(offset);
+      const type = bytes.toString("ascii", offset + 4, offset + 8);
+      if (forbidden.has(type)) {
+        fail(`${file}: public image contains ancillary metadata chunk ${type}`);
+        return;
+      }
+      offset += 12 + length;
+      if (type === "IEND") break;
+    }
+  }
+}
+
 const workflowDirectory = path.join(root, ".github", "workflows");
 const workflowFiles = fs.readdirSync(workflowDirectory)
   .filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"))
@@ -58,6 +98,10 @@ if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish fr
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify both installed-package evidence records");
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
+const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
+if (!releaseRequestValidator.includes("readmeDraftMarkers") || !releaseRequestValidator.includes("README.en.md")) {
+  fail("validate-release-request.mjs must reject candidate or not-yet-released README wording");
+}
 if (!/options:\s*\n\s*- community(?:\s*\n\s*[a-zA-Z_]|\s*\n\s*$)/m.test(release) || /^\s*- signed\s*$/m.test(release)) {
   fail("release.yml must expose only the enabled community tier until platform signature verification exists");
 }
@@ -130,6 +174,7 @@ else {
       if (fs.lstatSync(absolute).isSymbolicLink()) fail(`Symlinks are not allowed in the public source boundary: ${file}`);
       const stats = fs.statSync(absolute);
       if (stats.size > 10 * 1024 * 1024) fail(`Public source file exceeds 10 MiB: ${file}`);
+      if (/\.(?:png|jpe?g)$/i.test(file)) inspectPublicImageMetadata(file, fs.readFileSync(absolute));
       if (stats.size > 1024 * 1024 || /\.(?:png|ico|icns|dmg|exe|zip|gz)$/i.test(file)) continue;
       const text = fs.readFileSync(absolute, "utf8");
       const personalScan = text
@@ -148,6 +193,10 @@ else {
 
 const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const readmes = ["README.md", "README.en.md"];
+const readmeDraftMarkers = {
+  "README.md": [/候选/, /尚未发布/, /发布后生效/, /待发布/],
+  "README.en.md": [/\bcandidate\b/i, /\bpending\b/i, /not (?:yet )?released/i, /after .*released/i],
+};
 for (const readmeName of readmes) {
   const readmePath = path.join(root, readmeName);
   if (!fs.existsSync(readmePath)) {
@@ -155,6 +204,9 @@ for (const readmeName of readmes) {
     continue;
   }
   const content = fs.readFileSync(readmePath, "utf8");
+  if (readmeDraftMarkers[readmeName].some((pattern) => pattern.test(content))) {
+    fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
+  }
   if (!content.includes(`# ${readmeName === "README.md" ? "额度助手" : "Quota Assistant"} v${packageVersion}`)) {
     fail(`${readmeName}: title does not match package version ${packageVersion}`);
   }

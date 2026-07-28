@@ -14,6 +14,8 @@
 .operation-notice button { min-height: auto; padding: 0; border: 0; color: #23518a; background: transparent; font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .operation-notice button:hover { color: #173b69; text-decoration: underline; text-underline-offset: 2px; }
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+html.docs-capture-2x, html.docs-capture-2x body { width: 240px; height: 176px; }
+html.docs-capture-2x #root { width: 120px; height: 88px; transform: scale(2); transform-origin: top left; }
 button { font: inherit; }
 
 .quota-card, .loading-card {
@@ -102,9 +104,7 @@ button { font: inherit; }
 .reset-credit-tip p { margin: 0; }
 .reset-credit-tip p + p { margin-top: 8px; }
 .provider-mark { position: relative; width: 43px; height: 43px; display: grid; place-items: center; overflow: hidden; padding: 6px; background: transparent; }
-.provider-mark span { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(23,25,31,.24); border-radius: 11px; color: #202530; background: rgba(255,255,255,.72); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 6px 14px rgba(38,46,66,.12); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 750; letter-spacing: -.04em; line-height: 1; }
-.provider-mark--codex span { background: linear-gradient(145deg, rgba(211,226,255,.92), rgba(243,236,255,.9)); }
-.provider-mark--claude span { background: linear-gradient(145deg, rgba(255,232,216,.94), rgba(255,245,226,.9)); }
+.provider-mark img { width: 100%; height: 100%; object-fit: contain; filter: none; -webkit-user-drag: none; }
 
 .error-state { margin: 40px auto 0; max-width: 224px; text-align: center; }
 .status-icon { width: 42px; height: 42px; display: grid; place-items: center; margin: 0 auto 16px; border: 1px solid rgba(255,255,255,.38); border-radius: 50%; color: rgba(17,20,27,.72); background: rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 12px 32px rgba(35,48,73,.08); backdrop-filter: blur(10px); }
@@ -226,24 +226,14 @@ button { font: inherit; }
 .service-icon {
   width: 34px;
   height: 34px;
-  display: grid;
-  place-items: center;
+  display: block;
   flex: 0 0 auto;
+  object-fit: contain;
   border-radius: 10px;
-  border: 1px solid rgba(32,37,48,.14);
-  color: #202530;
-  background: rgba(255,255,255,.82);
-  box-shadow: 0 4px 13px rgba(35,48,73,.12);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: -.05em;
   pointer-events: none;
   -webkit-user-drag: none;
 }
-.service-icon--codex { background: linear-gradient(145deg, rgba(211,226,255,.96), rgba(243,236,255,.92)); }
-.service-icon--claude { background: linear-gradient(145deg, rgba(255,232,216,.96), rgba(255,245,226,.92)); }
-.service-icon--compact { width: 22px; height: 22px; border-radius: 7px; font-size: 7px; }
+.service-icon--compact { width: 22px; height: 22px; border-radius: 7px; }
 
 .quota-overview {
   min-width: 480px;
