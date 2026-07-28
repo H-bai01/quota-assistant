@@ -1,6 +1,6 @@
 [package]
 name = "quota-assistant"
-version = "0.2.1"
+version = "0.2.2"
 description = "A local-first Codex and Claude quota monitor"
 authors = ["Quota Float contributors", "Quota Assistant contributors"]
 license = "MIT"

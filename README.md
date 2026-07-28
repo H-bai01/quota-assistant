@@ -1,88 +1,195 @@
-# 额度助手 0.2.1
+# 额度助手 v0.2.2
 
-一个本地优先的桌面悬浮额度监控工具，同时显示 Codex 与 Claude 的可用额度、重置时间和订阅续期日期。
+[简体中文](README.md) · [English](README.en.md)
 
-本项目基于 MIT 许可的 [Quota Float](https://github.com/change-42-yhmm/quota-float) 开发，保留其轻量悬浮窗、边缘吸附、托盘、开机启动和 Codex 额度读取能力，并增加 Claude 登录、Claude 额度读取、双服务总览和环境诊断。
+[![CI](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag)](https://github.com/H-bai01/quota-assistant/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![macOS](https://img.shields.io/badge/macOS-unsigned-orange)](#平台兼容与签名状态)
+[![Windows](https://img.shields.io/badge/Windows-unsigned-orange)](#平台兼容与签名状态)
 
-## 功能
+一个本地优先的桌面悬浮工具，在同一张卡片中查看 Codex 与 Claude 的剩余额度、重置时间和订阅续期日期。
 
-- Codex：读取本机现有 Codex 登录状态，显示套餐、周额度、重置时间与重置机会。
-- Claude：使用应用内独立登录窗口连接 `claude.ai`，显示套餐、5 小时额度与周额度。
-- 订阅：识别 ChatGPT 与 Claude 的购买来源；Apple 订阅可在应用内官方登录窗口确认套餐和续期日期，并在本地缓存结果。
-- 到期提醒：平时使用已确认日期；到期前 1 天自动复核，登录失效时只弹出一次应用内提示。
-- 悬浮窗：紧凑显示、单击展开、屏幕边缘吸附、始终置顶、常态展开。
-- 双服务：紧凑窗口和展开总览同时显示 Codex 与 Claude 状态。
-- 系统能力：菜单栏托盘、开机启动、中英文界面、手动刷新。
-- 诊断：检查应用、登录环境和系统信息；诊断报告不包含令牌或 Cookie。
-- 稳定性：缓存、失败退避、过期数据标识和未知响应保护，不会伪造额度。
+![macOS 隔离文档候选展开后的 Codex 与 Claude 双服务总览](docs/assets/macos-expanded-real.png)
 
-## 隐私边界
+## 立即下载
 
-- 无遥测、无统计、无崩溃上报、无第三方追踪。
-- Codex 访问令牌只由 Rust 后端发送给固定的 ChatGPT 官方 HTTPS 额度与订阅来源接口，不进入 WebView、JavaScript、URL、页面、日志或错误。
-- Claude Cookie 仅由应用内 WebView 保管，并只发送给 Claude 官方接口。
-- 应用持久化悬浮窗偏好和最小化的订阅摘要（套餐、来源、周期、续期日期、状态），不复制账户令牌、Cookie、账号邮箱、聊天内容或原始页面响应。
-- 详细说明见 [PRIVACY.md](PRIVACY.md) 和 [SECURITY.md](SECURITY.md)。
+> **安全提示：v0.2.2 GitHub 社区版计划附件未使用 macOS Developer ID/Apple 公证或 Windows Authenticode 签名。请只从本仓库 Releases 下载，并用 `SHA256SUMS.txt` 核验文件。以下 v0.2.2 直链会在该版本正式发布后生效。**
 
-## 候选与支持状态
+| 平台 | 计划附件 | 直接入口 |
+| --- | --- | --- |
+| macOS（Universal） | `quota-assistant_0.2.2_macos_universal.dmg` | [下载 DMG](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg) |
+| Windows（x64） | `quota-assistant_0.2.2_windows_x64-setup.exe` | [下载 EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
+| 文件校验 | `SHA256SUMS.txt` | [下载 SHA-256 校验文件](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt) |
+| 所有版本 | — | [查看全部 Releases](https://github.com/H-bai01/quota-assistant/releases) |
 
-- GitHub Actions 只负责生成候选包；CI 构建成功不等于对应平台已经正式支持。
-- macOS Universal 候选包需在 Intel 与 Apple Silicon 的安装环境中完成冷启动、核心流程和卸载验收。
-- Windows NSIS 候选包需在真实 Windows 环境中完成安装、冷启动、托盘、拖动、锁定、语言、诊断复制、退出和卸载验收。
-- 当前候选包没有 Windows Authenticode 签名，也没有 macOS Developer ID 签名和 Apple 公证，只能作为测试候选，不能据此宣称已经完成正式平台支持。
+## 三步开始使用
+
+1. 安装并打开额度助手；保持同一台电脑上的 Codex Desktop 已登录。
+2. 展开悬浮窗，点击“连接 Claude”，只在应用打开的 Claude 官方页面完成登录。
+3. 点击日历按钮“获取订阅信息”。程序会识别购买来源；需要 Apple 确认时，只在 Apple 官方页面登录。
+
+![Claude 尚未连接时的入口](docs/assets/claude-connect.jpg)
+
+## 目录
+
+- [核心能力](#核心能力)
+- [平台兼容与签名状态](#平台兼容与签名状态)
+- [安装](#安装)
+- [隐私与安全边界](#隐私与安全边界)
+- [常见问题](#常见问题)
+- [升级、卸载、数据清除与回退](#升级卸载数据清除与回退)
+- [本地开发与贡献](#本地开发与贡献)
+- [来源、许可、资产与商标](#来源许可资产与商标)
+- [已知限制、版本历史与支持](#已知限制版本历史与支持)
+
+## 核心能力
+
+### 1. Codex + Claude 一眼总览
+
+- Codex：复用本机 Codex 登录状态，显示周额度、重置时间和重置机会。
+- Claude：使用应用独立登录会话，显示 5 小时额度、周额度及重置时间。
+- 订阅：显示 ChatGPT 与 Claude 的购买来源、周期和已确认续期日期；到期前 1 天自动复核。
+
+![双服务额度、重置时间和续期信息](docs/assets/quota-renewal.jpg)
+
+### 2. 悬浮窗与系统托盘
+
+- 紧凑悬浮窗、单击展开、拖动、屏幕边缘吸附、置顶和锁定鼠标穿透。
+- 菜单栏/托盘可显示或隐藏窗口、刷新、切换语言、解除锁定和退出。
+
+![macOS 文档候选的真实紧凑悬浮窗](docs/assets/macos-compact-real.png)
+
+拖动、边缘吸附和托盘菜单的系统级画面仍待形成可公开的脱敏证据；Windows 系统托盘画面必须等真实 Windows 验收，项目不会制作假截图。
+
+### 3. 本地诊断
+
+诊断页只报告应用版本、操作系统/架构，以及是否检测到 Codex、Claude 应用和登录环境；不显示或复制令牌、Cookie、邮箱或完整个人路径。
+
+![使用演示数据生成的脱敏诊断界面](docs/assets/diagnostics.jpg)
+
+## 平台兼容与签名状态
+
+下表描述 **v0.2.2 候选**，不是对未完成验收的平台作正式支持承诺。
+
+| 平台 | 架构 | 计划安装包 | 自动构建 | 安装包实机验证 | 签名/公证 |
+| --- | --- | --- | --- | --- | --- |
+| macOS | Universal（Apple Silicon + Intel） | DMG | 候选门要求通过 | 本轮候选尚待以最终 SHA 记录冷启动、核心流程、退出和卸载 | 未签名、未公证 |
+| Windows | x64 | NSIS EXE | 候选门要求通过 | 尚无本轮真实 Windows 安装包证据；不能写成已正式验证 | 未 Authenticode 签名 |
+
+GitHub 社区版允许发布未签名附件，但仍必须通过测试、构建、SBOM、attestation、SHA-256、对应平台基本启动验证和醒目风险披露。未来“签名发行版”另行要求 Developer ID + notarization 和 Authenticode。
 
 ## 安装
 
 ### macOS
 
-1. 下载 macOS DMG，打开后将“额度助手”拖入“应用程序”。
-2. 首次启动如果被系统拦截，请右键应用并选择“打开”，然后再次确认。
-3. 如果仍被拦截，请前往“系统设置 → 隐私与安全性”，确认允许打开。
+1. 从本仓库 Release 下载 DMG，同时下载 `SHA256SUMS.txt`。
+2. 核验后打开 DMG，将“额度助手”拖入“应用程序”。
+3. **由于社区版未签名、未公证，Gatekeeper 可能阻止首次打开。** 只在确认下载来源与 SHA-256 后，右键应用选择“打开”；如仍被拦截，前往“系统设置 → 隐私与安全性”查看系统提示。
+
+![v0.2.2 Universal DMG 的真实 macOS 安装窗口](docs/assets/macos-install-dmg.jpg)
+
+Gatekeeper 提示的具体样式由 macOS 版本和本机策略决定，本轮未取得可复现弹窗，因此不使用合成截图代替。
 
 ### Windows
 
-1. 下载 Windows 安装包并运行。
-2. 当前包未签名，Windows 可能显示“未知发布者”或 SmartScreen 提示；只应安装来自本项目正式 GitHub Release 的附件。
+1. 从本仓库 Release 下载 EXE，同时下载 `SHA256SUMS.txt`。
+2. 核验后运行安装包。
+3. **由于社区版未 Authenticode 签名，SmartScreen 可能显示“未知发布者”。** 只对来源与 SHA-256 均已确认的本仓库附件继续安装。
 
-## 首次使用
+### SHA-256 校验
 
-1. 先在同一台电脑登录 Codex Desktop，额度助手会复用其本地登录状态读取 Codex 额度。
-2. 在额度助手中点击“连接 Claude”，只在应用打开的 Claude 官方页面中完成登录。
-3. 展开悬浮窗后点击“获取订阅信息”。程序会先判断购买来源；需要确认 Apple 订阅时，只在 Apple 官方页面中完成登录。
-4. 登录失效或官方接口暂时不可用时，应用会保留上次已确认结果并显示需要处理的状态，不会自行估算额度。
+macOS：
 
-## 升级、卸载与回退
+```bash
+shasum -a 256 quota-assistant_0.2.2_macos_universal.dmg
+grep quota-assistant_0.2.2_macos_universal.dmg SHA256SUMS.txt
+```
 
-- 升级：退出旧版本后安装新版；相同应用标识会覆盖应用本体，并保留本机偏好和最小化订阅摘要。
-- 卸载前：先在额度助手里关闭开机启动，再退出应用。必要时额外检查系统启动项：macOS 前往“系统设置 → 通用 → 登录项”，Windows 前往“设置 → 应用 → 启动”。
-- macOS 卸载：从“应用程序”中删除“额度助手”。
-- Windows 卸载：前往“设置 → 应用 → 已安装的应用”，找到“额度助手”并选择卸载。
-- 彻底清除：退出应用并完成普通卸载后，分别删除以下目录：macOS 配置目录 `~/Library/Application Support/app.quotaassistant.desktop`、macOS WebView 目录 `~/Library/WebKit/app.quotaassistant.desktop`；Windows 配置目录 `%APPDATA%\app.quotaassistant.desktop`、Windows WebView 目录 `%LOCALAPPDATA%\app.quotaassistant.desktop`。配置目录保存偏好与订阅摘要，WebView 目录保存登录会话；两者用途不同，必须分别处理。删除后不可恢复。
-- 回退：`v0.2.1` 是本仓库第一个公共 Release，没有更早的公共安装包，因此当前不存在可验证的公共二进制回退点。下一正式版本发布前必须确认 `v0.2.1` 附件和校验和仍可下载，并实际完成一次降级恢复。
-- 当前没有启用安全更新通道；托盘中的更新入口已禁用并明确显示“暂未启用”。请只从同一 GitHub 仓库的正式 Release 获取升级包。
+Windows PowerShell：
 
-## 本地开发
+```powershell
+Get-FileHash .\quota-assistant_0.2.2_windows_x64-setup.exe -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+```
 
-需要 Node.js 20.19.0 或更高版本、项目锁定的 Rust 工具链，以及 macOS 上的 Xcode Command Line Tools 或 Windows 上的 Tauri 构建依赖。
+两处 SHA-256 必须完全一致；不一致时不要运行安装包。
+
+## 隐私与安全边界
+
+- 无遥测、广告、统计、崩溃上报或第三方追踪。
+- Codex token 只在 Rust 后端内存中用于固定 ChatGPT 官方 HTTPS 接口，不进入 WebView、JavaScript、URL、页面、日志、诊断或错误。
+- Claude Cookie 由应用自己的系统 WebView 保管，只用于固定 Claude 官方接口。
+- Apple 页面只交付服务名、套餐、状态和续期日期等最少字段；邮箱、密码、验证码和整页正文会被拒绝。
+- 本地只保存悬浮窗偏好和带版本的最小订阅摘要；损坏时恢复上一份有效备份或显示明确错误。
+
+详见 [PRIVACY.md](PRIVACY.md) 与 [SECURITY.md](SECURITY.md)。
+
+## 常见问题
+
+### 为什么 Codex 有数据、Claude 仍显示未连接？
+
+两者登录来源不同。Codex 读取本机 Codex 登录状态；Claude 使用额度助手自己的隔离 WebView 会话。请在额度助手中点击“连接 Claude”。
+
+### 登录完成后仍提示登录怎么办？
+
+关闭登录窗口后点击“获取订阅信息”重试。登录确认有总时限，不会无限轮询；认证失败或窗口关闭后会停止并允许重新打开。
+
+### 续期日期为什么可能需要再次确认？
+
+程序平时使用已确认日期，只在到期前 1 天复核。官方会话失效时，应用内只提醒一次，不会要求你长期保持登录窗口打开。
+
+### 为什么没有“检查更新”？
+
+当前没有启用安全更新通道，入口已禁用并显示“暂未启用”。请从本仓库 Releases 手动下载更新。
+
+### 悬浮窗拖动或边缘吸附异常怎么办？
+
+先通过托盘解除锁定，再拖动紧凑窗主体。仍异常时打开“环境诊断”，复制脱敏报告，并在提交 Issue 前再次确认没有个人信息。
+
+### 系统拦截安装怎么办？
+
+这是未签名社区版的预期风险提示。先核对仓库来源和 SHA-256，再按上方平台步骤处理；不要关闭系统全局安全保护。
+
+## 升级、卸载、数据清除与回退
+
+- 升级：退出旧版后安装新版；相同应用标识会保留偏好与最小订阅摘要。
+- macOS 卸载：先关闭开机启动并退出，再从“应用程序”删除“额度助手”。
+- Windows 卸载：先关闭开机启动并退出，再从“设置 → 应用 → 已安装的应用”卸载。
+- 清除数据：普通卸载不会自动删除偏好与 WebView 登录会话。彻底清除前请阅读 [PRIVACY.md](PRIVACY.md)；删除配置和 WebView 目录不可恢复。
+- 回退：v0.2.2 尚未发布，不能预先声称降级成功。只有在 v0.2.1 公共附件、校验文件仍可下载，且本次安装包完成实际降级验证后，Release notes 才能把 v0.2.1 写成可验证回退点。
+
+## 本地开发与贡献
+
+需要 Node.js 20.19.0+、仓库锁定的 Rust 1.97.1，以及 Tauri 对应平台构建依赖。
 
 ```bash
 npm ci
 npm test -- --run
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
-npm run tauri build
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-浏览器预览使用模拟数据；真实额度读取必须在 Tauri 桌面应用中运行。
+浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。当前 v0.2.2 候选自测为前端 20 项、Rust 31 项通过；正式 Release notes 必须以最终候选的重新验收数字为准。
 
-## 发布状态
+贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。安全问题不要放入公开 Issue；私密报告入口见 [SECURITY.md](SECURITY.md)。
 
-当前隔离候选基于 0.2.1，应用标识为 `app.quotaassistant.desktop`。候选构建、对应平台实机验收和正式 Release 是三个独立阶段；必需实机项未完成时不得创建正式版本。版本号以 `package.json` 为来源，通过脚本同步并校验 Cargo、Tauri、User-Agent、标签和 Release 输入。
+## 来源、许可、资产与商标
 
-## 许可与来源
+本项目基于 MIT 许可的 [Quota Float](https://github.com/change-42-yhmm/quota-float) 开发。源码同样使用 [MIT License](LICENSE)。
 
-MIT License。原始项目版权归 Quota Float contributors；本项目新增与修改部分归 Quota Assistant contributors。完整许可见 [LICENSE](LICENSE)。
+界面使用项目自有中性 `CX` / `CL` 标识，不打包第三方官方图标。逐文件来源、SHA-256 与权利状态见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。
 
-本项目不是 OpenAI 或 Anthropic 的官方产品，也未获得其背书。OpenAI、ChatGPT、Codex、Anthropic 和 Claude 等名称及商标归各自权利人所有。
+本项目不是 OpenAI 或 Anthropic 的官方产品，也未获得其背书。OpenAI、ChatGPT、Codex、Anthropic、Claude、Apple、Google 及相关商标归各自权利人所有。
 
-界面只使用项目自有的中性服务标识；逐文件来源、哈希和权利状态见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。
+## 已知限制、版本历史与支持
+
+- Codex 与 Claude 的非公开只读接口、页面结构或认证方式可能变化；未知响应会关闭失败，不会猜测额度。
+- Google Play 与网页直付订阅读取尚未完成真实账号验证。
+- Windows v0.2.2 仍缺真实安装、冷启动、托盘、拖动、锁定、语言、诊断、退出和卸载证据。
+- GitHub 社区版未签名；平台安全提示与较高误报概率属于已知限制。
+- 当前没有安全自动更新通道。
+
+完整列表见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。版本历史与候选 Release notes 位于 [docs/releases/](docs/releases/README.md)。普通问题与功能建议使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)；安全问题使用 [SECURITY.md](SECURITY.md) 中确认的私密渠道。

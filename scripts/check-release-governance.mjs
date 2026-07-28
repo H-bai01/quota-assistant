@@ -57,6 +57,7 @@ if (!release.includes("workflow_dispatch:")) fail("release.yml must be manually 
 if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish from push or tag events");
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify both installed-package evidence records");
+if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
 for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "windows_rollback_evidence_url", "macos_rollback_evidence_url"]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
 }
@@ -135,6 +136,43 @@ else {
     }
   }
 }
+
+const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+const readmes = ["README.md", "README.en.md"];
+for (const readmeName of readmes) {
+  const readmePath = path.join(root, readmeName);
+  if (!fs.existsSync(readmePath)) {
+    fail(`Missing ${readmeName}`);
+    continue;
+  }
+  const content = fs.readFileSync(readmePath, "utf8");
+  if (!content.includes(`# ${readmeName === "README.md" ? "额度助手" : "Quota Assistant"} v${packageVersion}`)) {
+    fail(`${readmeName}: title does not match package version ${packageVersion}`);
+  }
+  for (const required of [
+    `releases/download/v${packageVersion}/quota-assistant_${packageVersion}_macos_universal.dmg`,
+    `releases/download/v${packageVersion}/quota-assistant_${packageVersion}_windows_x64-setup.exe`,
+    `releases/download/v${packageVersion}/SHA256SUMS.txt`,
+    "https://github.com/H-bai01/quota-assistant/releases",
+    "SHA256SUMS.txt",
+  ]) {
+    if (!content.includes(required)) fail(`${readmeName}: missing release entry ${required}`);
+  }
+  if (!/未签名|unsigned/i.test(content) || !/Gatekeeper/.test(content) || !/SmartScreen/.test(content)) {
+    fail(`${readmeName}: unsigned Gatekeeper and SmartScreen risks must be prominent and explicit`);
+  }
+  const localImages = [...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)]
+    .map((match) => match[1])
+    .filter((target) => !/^https?:\/\//.test(target));
+  for (const target of localImages) {
+    const imagePath = path.resolve(root, target);
+    if (!imagePath.startsWith(`${root}${path.sep}`) || !fs.existsSync(imagePath) || !fs.statSync(imagePath).isFile()) {
+      fail(`${readmeName}: broken or unsafe local image link ${target}`);
+    }
+  }
+}
+if (!fs.readFileSync(path.join(root, "README.md"), "utf8").includes("[English](README.en.md)")) fail("README.md must link to README.en.md");
+if (!fs.readFileSync(path.join(root, "README.en.md"), "utf8").includes("[简体中文](README.md)")) fail("README.en.md must link to README.md");
 
 if (failures.length) {
   console.error(`Release governance failed (${failures.length}):\n- ${failures.join("\n- ")}`);

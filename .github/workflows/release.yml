@@ -7,6 +7,14 @@ on:
         description: SemVer without the v prefix; must match all application manifests
         required: true
         type: string
+      release_tier:
+        description: GitHub community permits disclosed unsigned packages; signed distribution requires platform signatures
+        required: true
+        default: community
+        type: choice
+        options:
+          - community
+          - signed
       candidate_run_id:
         description: Successful Candidate workflow run ID
         required: true
@@ -86,10 +94,12 @@ jobs:
           VERSION: ${{ inputs.version }}
           CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
           RELEASE_NOTES_PATH: ${{ inputs.release_notes_path }}
+          RELEASE_TIER: ${{ inputs.release_tier }}
         run: |
           node scripts/validate-release-request.mjs \
             --version "$VERSION" \
             --commit "$CANDIDATE_COMMIT" \
+            --release-tier "$RELEASE_TIER" \
             --notes "$RELEASE_NOTES_PATH"
           npm run version:check -- --tag "v$VERSION"
           node scripts/check-release-governance.mjs
@@ -148,12 +158,14 @@ jobs:
           PREVIOUS_RELEASE_TAG: ${{ inputs.previous_release_tag }}
           WINDOWS_ROLLBACK_EVIDENCE_URL: ${{ inputs.windows_rollback_evidence_url }}
           MACOS_ROLLBACK_EVIDENCE_URL: ${{ inputs.macos_rollback_evidence_url }}
+          RELEASE_TIER: ${{ inputs.release_tier }}
         run: |
           node scripts/verify-release-candidate.mjs \
             --input release-input \
             --output release-assets \
             --version "$VERSION" \
             --commit "$CANDIDATE_COMMIT" \
+            --release-tier "$RELEASE_TIER" \
             --candidate-run-id "${{ inputs.candidate_run_id }}" \
             --windows-sha256 "$WINDOWS_SHA256" \
             --windows-validated-at "$WINDOWS_VALIDATED_AT" \

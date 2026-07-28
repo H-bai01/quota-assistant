@@ -2,7 +2,7 @@
 
 ## 一句话定位
 
-额度助手是一个基于 Tauri 2 的 Windows/macOS 桌面悬浮窗候选项目，统一展示 Codex 与 Claude 额度、重置时间、重置机会和订阅续期日期。平台支持必须以对应安装包的实机验收记录为准，不能由 CI 构建成功代替。
+额度助手是一个基于 Tauri 2 的 Windows/macOS 开源桌面悬浮工具，统一展示 Codex 与 Claude 额度、重置时间、重置机会和订阅续期日期。平台支持必须以对应安装包的实机验收记录为准，不能由 CI 构建成功代替。
 
 ## 当前技术栈
 
@@ -61,4 +61,4 @@ npm run tauri dev
 - 确认悬浮窗锁定穿透、托盘/菜单栏解锁、多显示器恢复、开机启动在 Windows/macOS 的实机行为。
 - 后续视觉调整默认只改共享 React/CSS，不维护 Windows/macOS 两套 UI。
 - 继续补充网页直付与 Google Play 订阅来源的真实账号验证。
-- 发布前补齐签名、公证、安装包扫描和日志隐私审计。
+- GitHub 开源社区版发布前补齐未签名风险披露、SHA-256、安装包扫描和日志隐私审计；未来签名发行版另行补齐 Developer ID/notarization 与 Authenticode。

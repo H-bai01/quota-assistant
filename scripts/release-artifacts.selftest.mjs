@@ -38,7 +38,7 @@ for (const [platform, record] of Object.entries(records)) {
     version,
     commit,
     platform,
-    signed: true,
+    signed: false,
     artifacts: [
       { name: record.package, sha256: sha256(record.packageBody), size: record.packageBody.length },
       { name: record.sbom, sha256: sha256(sbomBody), size: sbomBody.length },
@@ -54,6 +54,7 @@ const common = [
   "--version", version,
   "--commit", commit,
   "--candidate-run-id", "123456789",
+  "--release-tier", "community",
   "--windows-sha256", records.windows.sha256,
   "--windows-validated-at", new Date(Date.now() - 60_000).toISOString().replace(/\.\d{3}Z$/, "Z"),
   "--windows-evidence-url", "https://example.invalid/windows-evidence",
@@ -82,22 +83,30 @@ try {
   ]);
   const gates = JSON.parse(await fs.readFile(path.join(output, "release-gates.json"), "utf8"));
   assert.equal(gates.commit, commit);
+  assert.equal(gates.releaseTier, "community");
   assert.equal(gates.platforms.windows.conclusion, "passed");
   assert.equal(gates.platforms.macos.conclusion, "passed");
   assert.equal((await fs.readFile(path.join(output, "SHA256SUMS.txt"), "utf8")).trim().split("\n").length, 7);
 
-  const windowsManifestPath = path.join(input, `quota-assistant_${version}_windows.manifest.json`);
-  const windowsManifest = JSON.parse(await fs.readFile(windowsManifestPath, "utf8"));
-  windowsManifest.signed = false;
-  await fs.writeFile(windowsManifestPath, `${JSON.stringify(windowsManifest)}\n`);
-  const unsigned = spawnSync(process.execPath, [
-    ...common,
+  const signedTier = spawnSync(process.execPath, [
+    ...common.map((value) => value === "community" ? "signed" : value),
     "--output", path.join(temporaryRoot, "unsigned"),
   ], { cwd: root, encoding: "utf8" });
-  assert.notEqual(unsigned.status, 0);
-  assert.match(unsigned.stderr, /not signed/);
-  windowsManifest.signed = true;
-  await fs.writeFile(windowsManifestPath, `${JSON.stringify(windowsManifest)}\n`);
+  assert.notEqual(signedTier.status, 0);
+  assert.match(signedTier.stderr, /not signed/);
+
+  for (const platform of Object.keys(records)) {
+    const manifestPath = path.join(input, `quota-assistant_${version}_${platform}.manifest.json`);
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    manifest.signed = true;
+    await fs.writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
+  }
+  const signedOutput = path.join(temporaryRoot, "signed");
+  const signed = spawnSync(process.execPath, [
+    ...common.map((value) => value === "community" ? "signed" : value),
+    "--output", signedOutput,
+  ], { cwd: root, encoding: "utf8" });
+  assert.equal(signed.status, 0, signed.stderr);
 
   const mismatch = spawnSync(process.execPath, [
     ...common.map((value) => value === records.windows.sha256 ? "0".repeat(64) : value),
@@ -114,11 +123,11 @@ try {
   const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
   const packageVersion = JSON.parse(await fs.readFile(path.join(root, "package.json"), "utf8")).version;
   const request = spawnSync(process.execPath, [
-    "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", head,
+    "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", head, "--release-tier", "community",
   ], { cwd: root, encoding: "utf8" });
   assert.equal(request.status, 0, request.stderr);
 
-  console.log("Release artifact tests passed (success, unsigned, mismatch, unknown-file, immutable request). ");
+  console.log("Release artifact tests passed (community unsigned, signed-tier rejection/success, mismatch, unknown-file, immutable request). ");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

@@ -37,6 +37,15 @@ const mockSubscriptions: SubscriptionSnapshot[] = [
   { provider: "claude", displayName: "CLAUDE", plan: "Claude Pro - Monthly", billingSource: "apple", cycle: "monthly", renewsAt: new Date(Date.now() + 12 * 86_400_000).toISOString(), renewalLabel: "8月8日续期", remainingDays: 12, status: "ready", message: null, updatedAt: new Date().toISOString() },
 ];
 
+function usesSanitizedPreviewData(): boolean {
+  return !isTauri() || import.meta.env.VITE_DOCS_CAPTURE === "1";
+}
+
+function browserPreviewVariant(): string | null {
+  if (!usesSanitizedPreviewData()) return null;
+  return new URLSearchParams(window.location.search).get("preview");
+}
+
 let widgetTransition: Promise<void> = Promise.resolve();
 let compactDragTransition: Promise<void> = Promise.resolve();
 
@@ -49,7 +58,19 @@ function enqueueWidgetTransition(operation: () => Promise<void>): Promise<void> 
 export const isTauri = () => "__TAURI_INTERNALS__" in window;
 
 export async function fetchSnapshots(force = false): Promise<ProviderSnapshot[]> {
-  if (!isTauri()) return [mockSnapshot, mockClaudeSnapshot];
+  if (usesSanitizedPreviewData()) {
+    if (browserPreviewVariant() === "claude-connect") {
+      return [mockSnapshot, {
+        ...mockClaudeSnapshot,
+        plan: null,
+        shortWindow: null,
+        weeklyWindow: null,
+        status: "signed_out",
+        message: "Claude 登录已失效，请重新连接。",
+      }];
+    }
+    return [mockSnapshot, mockClaudeSnapshot];
+  }
   return invoke<ProviderSnapshot[]>(force ? "refresh_snapshots" : "get_snapshots");
 }
 
@@ -64,7 +85,7 @@ export async function updatePreferences(value: WidgetPreferences): Promise<void>
 }
 
 export async function connectClaude(): Promise<void> {
-  if (!isTauri()) return;
+  if (usesSanitizedPreviewData()) return;
   await invoke("connect_claude");
 }
 
@@ -74,32 +95,51 @@ export async function disconnectClaude(): Promise<void> {
 }
 
 export async function getSubscriptions(): Promise<SubscriptionSnapshot[]> {
-  if (!isTauri()) return mockSubscriptions;
+  if (usesSanitizedPreviewData()) {
+    if (browserPreviewVariant() === "claude-connect") {
+      return mockSubscriptions.map((item) => item.provider === "claude"
+        ? { ...item, plan: null, renewsAt: null, renewalLabel: null, remainingDays: null, status: "needs_service_login", message: "请先连接 Claude。" }
+        : item);
+    }
+    return mockSubscriptions;
+  }
   return invoke<SubscriptionSnapshot[]>("get_subscriptions");
 }
 
 export async function refreshSubscriptions(): Promise<SubscriptionSnapshot[]> {
-  if (!isTauri()) return mockSubscriptions;
+  if (usesSanitizedPreviewData()) return getSubscriptions();
   return invoke<SubscriptionSnapshot[]>("refresh_subscriptions");
 }
 
 export async function openSubscriptionLogin(provider: ProviderId): Promise<void> {
-  if (!isTauri()) return;
+  if (usesSanitizedPreviewData()) return;
   await invoke("open_subscription_login", { provider });
 }
 
 export async function getEnvironmentStatus(): Promise<EnvironmentStatus> {
-  if (!isTauri()) return { codexInstalled: true, codexCredentialsFound: true, claudeInstalled: true, claudeCredentialsFound: false };
+  if (usesSanitizedPreviewData()) return { codexInstalled: true, codexCredentialsFound: true, claudeInstalled: true, claudeCredentialsFound: false };
   return invoke<EnvironmentStatus>("get_environment_status");
 }
 
 export async function getDiagnosticsReport(): Promise<DiagnosticsReport> {
-  if (!isTauri()) return { version: "dev", generatedAt: new Date().toISOString(), overallStatus: "ok", items: [], rawText: "Browser preview" };
+  if (usesSanitizedPreviewData()) return {
+    version: `${__APP_VERSION__} preview`,
+    generatedAt: new Date().toISOString(),
+    overallStatus: "ok",
+    items: [
+      { label: "操作系统", value: "macOS（演示环境）", status: "ok" },
+      { label: "Codex Desktop", value: "已检测到", status: "ok" },
+      { label: "Codex 登录状态", value: "已检测到", status: "ok" },
+      { label: "Claude Desktop", value: "已检测到", status: "ok" },
+      { label: "Claude 登录状态", value: "请在额度助手内连接", status: "warning" },
+    ],
+    rawText: "Sanitized browser preview",
+  };
   return invoke<DiagnosticsReport>("get_diagnostics_report");
 }
 
 export async function copyDiagnosticsReport(): Promise<void> {
-  if (!isTauri()) return;
+  if (usesSanitizedPreviewData()) return;
   await invoke("copy_diagnostics_report");
 }
 

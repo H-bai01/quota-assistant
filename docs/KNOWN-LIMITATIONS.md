@@ -1,7 +1,7 @@
 # 已知限制
 
 - Codex 数据来自非公开只读接口，字段或认证方式可能变化。
-- 当前候选包未签名、未公证；Windows 可能触发 SmartScreen，macOS 可能触发 Gatekeeper。缺少维护者提供的证书时只能作为测试候选。
+- GitHub 开源社区版安装包未签名、未公证；Windows 可能触发 SmartScreen，macOS 可能触发 Gatekeeper。社区版可在完整风险披露和 SHA-256 校验门通过后发布，但不等同于正式签名发行版。
 - macOS Universal 包由 GitHub Actions 的 `macos-14` runner 构建，不能在 Windows 本机直接生成。
 - Claude 额度依赖 `claude.ai` 当前的页面与接口结构，变化后可能需要适配。
 - Apple 可能要求重新验证账号；额度助手不会代存 Apple 密码或验证码。已确认的续期日期会继续显示，并在到期前 1 天复核失败时提醒登录。
@@ -12,5 +12,5 @@
 - Windows 正式支持仍需真实安装包完成安装、冷启动、托盘、拖动、锁定、语言、诊断复制、退出和卸载验收；CI 构建不能代替这些证据。
 - macOS 正式支持仍需对公开候选包完成安装、冷启动、核心流程、退出和卸载验收。
 - `v0.2.1` 是首个公共 Release，没有上一公共版本可以完成二进制降级；下一版本发布时才能把 `v0.2.1` 建立为真实公共回退点。
-- 正式分发还需要 Windows Authenticode、macOS Developer ID 签名和 notarization；证书属于外部依赖，不会由项目自行申请或编造。
+- 未来正式签名发行版还需要 Windows Authenticode、macOS Developer ID 签名和 notarization；证书属于外部依赖，不会由项目自行申请或编造。
 - GitHub 私密漏洞报告目前未启用，也没有经维护者确认的安全邮箱；此项在配置完成前保持发布阻断。
