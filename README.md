@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag)](https://github.com/H-bai01/quota-assistant/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-unsigned-orange)](#平台兼容与签名状态)
-[![Windows](https://img.shields.io/badge/Windows-unsigned-orange)](#平台兼容与签名状态)
+[![Windows](https://img.shields.io/badge/Windows-preview-orange)](#平台兼容与签名状态)
 
 一个本地优先的桌面悬浮工具，在同一张卡片中查看 Codex 与 Claude 的剩余额度、重置时间和订阅续期日期。
 
@@ -20,10 +20,10 @@
     <td>
       <strong>立即下载 v0.2.2</strong><br><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
-      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE（预览版）</a><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
       <a href="https://github.com/H-bai01/quota-assistant/releases">全部 Releases</a><br><br>
-      <strong>未签名提示：</strong>GitHub 社区版未使用 macOS Developer ID/Apple 公证或 Windows Authenticode。只从本仓库下载并先核验 SHA-256。
+      <strong>风险提示：</strong>GitHub 社区版未签名；Windows EXE 是尚未完成 Windows 实机 GUI 验收的预览版。只从本仓库下载并先核验 SHA-256。
     </td>
   </tr>
 </table>
@@ -31,11 +31,13 @@
 ## 立即下载
 
 > **安全提示：v0.2.2 GitHub 社区版附件未使用 macOS Developer ID/Apple 公证或 Windows Authenticode 签名。请只从本仓库 v0.2.2 Release 下载，并用 `SHA256SUMS.txt` 核验文件。**
+>
+> **Windows 预览版：EXE 已通过自动构建、manifest、SBOM、SHA-256 与 artifact attestation 检查，但尚未完成 Windows 实机 GUI 验收。安装、冷启动、紧凑/展开、拖动、置顶、托盘、锁定/解锁、双语、诊断复制、退出、卸载及降级均不得视为已经验证。**
 
 | 平台 | 附件 | 直接入口 |
 | --- | --- | --- |
 | macOS（Universal） | `quota-assistant_0.2.2_macos_universal.dmg` | [下载 DMG](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg) |
-| Windows（x64） | `quota-assistant_0.2.2_windows_x64-setup.exe` | [下载 EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
+| Windows（x64，预览版） | `quota-assistant_0.2.2_windows_x64-setup.exe` | [下载预览版 EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
 | 文件校验 | `SHA256SUMS.txt` | [下载 SHA-256 校验文件](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt) |
 | 所有版本 | — | [查看全部 Releases](https://github.com/H-bai01/quota-assistant/releases) |
 
@@ -88,12 +90,12 @@
 
 下表描述 **v0.2.2 GitHub 社区版**，并明确区分安装包、实机验证与签名状态。
 
-| 平台 | 架构 | 计划安装包 | 自动构建 | 安装包实机验证 | 签名/公证 |
+| 平台 | 架构 | 安装包 | 自动构建与来源证明 | 安装包实机验证 | 签名/公证 |
 | --- | --- | --- | --- | --- | --- |
-| macOS | Universal（Apple Silicon + Intel） | DMG | GitHub Actions | 最终文件的验收记录随 Release 的 `release-gates.json` 提供 | 未签名、未公证 |
-| Windows | x64 | NSIS EXE | GitHub Actions | 未提供真实 Windows 实机验证，不列为已验证支持 | 未 Authenticode 签名 |
+| macOS | Universal（Apple Silicon + Intel） | DMG | 已通过；含 manifest、SBOM、SHA-256、attestation | 已使用精确远端附件完成真实 Mac 验收与降级；记录随 Release 的 `release-gates.json` 提供 | 未签名、未公证 |
+| Windows 预览版 | x64 | NSIS EXE | 已通过；含 manifest、SBOM、SHA-256、attestation | **尚未完成 Windows 实机 GUI 验收，不列为已验证支持** | 未 Authenticode 签名 |
 
-GitHub 社区版允许发布未签名附件，但仍必须通过测试、构建、SBOM、attestation、SHA-256、对应平台基本启动验证和醒目风险披露。未来“签名发行版”另行要求 Developer ID + notarization 和 Authenticode。
+本次发布的二进制附件由源提交 [`a28df7a21a5a84429db81d0770f0cf16f78dc95b`](https://github.com/H-bai01/quota-assistant/commit/a28df7a21a5a84429db81d0770f0cf16f78dc95b) 构建。GitHub 社区版允许发布未签名附件；macOS 仍须通过真实实机门，Windows 仅以醒目标注的未验收预览版提供，且两个平台都必须通过测试、构建、manifest、SBOM、attestation、SHA-256 和附件完整性检查。未来“签名发行版”另行要求 Developer ID + notarization 和 Authenticode。
 
 ## 安装
 
@@ -112,6 +114,8 @@ Gatekeeper 提示的具体样式由 macOS 版本和本机策略决定，本轮�
 1. 从本仓库 Release 下载 EXE，同时下载 `SHA256SUMS.txt`。
 2. 核验后运行安装包。
 3. **由于社区版未 Authenticode 签名，SmartScreen 可能显示“未知发布者”。** 只对来源与 SHA-256 均已确认的本仓库附件继续安装。
+
+> **预览版提示：**本项目尚未在真实 Windows 设备上验证安装与运行流程。请仅在可以承担预览软件风险的环境中使用；遇到异常请退出并卸载，不要把下列平台行为视为已通过验收。
 
 ### SHA-256 校验
 
@@ -171,9 +175,9 @@ Get-Content .\SHA256SUMS.txt
 
 - 升级：退出旧版后安装新版；相同应用标识会保留偏好与最小订阅摘要。
 - macOS 卸载：先关闭开机启动并退出，再从“应用程序”删除“额度助手”。
-- Windows 卸载：先关闭开机启动并退出，再从“设置 → 应用 → 已安装的应用”卸载。
+- Windows 预览版卸载：若已成功安装，按 Windows 的常规方式从“设置 → 应用 → 已安装的应用”卸载；本流程尚未完成项目实机验收。
 - 清除数据：普通卸载不会自动删除偏好与 WebView 登录会话。彻底清除前请阅读 [PRIVACY.md](PRIVACY.md)；删除配置和 WebView 目录不可恢复。
-- 回退：是否可回退到 v0.2.1，以 v0.2.2 Release notes 和 `release-gates.json` 中记录的公共附件、校验和及实际降级验证为准。
+- 回退：macOS 已完成从本版二进制降级到公开 v0.2.1 的验证；Windows 预览版尚未验证降级。权威记录以 v0.2.2 Release notes 和 `release-gates.json` 为准。
 
 ## 本地开发与贡献
 
@@ -188,7 +192,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。v0.2.2 的当前测试记录为前端 20 项、Rust 31 项通过；Release notes 记录最终发布提交的验收数字。
+浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。v0.2.2 的当前测试记录为前端 25 项、Rust 33 项通过；Release notes 记录最终发布提交的验收数字。
 
 贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。当前尚未配置私密漏洞报告入口；不要在公开 Issue 中提交漏洞细节，最新状态见 [SECURITY.md](SECURITY.md)。
 
@@ -204,7 +208,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
 - Codex 与 Claude 的非公开只读接口、页面结构或认证方式可能变化；未知响应会关闭失败，不会猜测额度。
 - Google Play 与网页直付订阅读取尚未完成真实账号验证。
-- Windows v0.2.2 仍缺真实安装、冷启动、托盘、拖动、锁定、语言、诊断、退出和卸载证据。
+- Windows v0.2.2 是预览版，仍缺真实安装、冷启动、紧凑/展开、拖动、置顶、托盘、锁定/解锁、双语、诊断复制、退出、卸载和降级证据；自动构建和来源证明通过不代表这些 GUI 行为已验证。
 - GitHub 社区版未签名；平台安全提示与较高误报概率属于已知限制。
 - 当前没有安全自动更新通道。
 

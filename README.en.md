@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag)](https://github.com/H-bai01/quota-assistant/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-unsigned-orange)](#platform-compatibility-and-signing)
-[![Windows](https://img.shields.io/badge/Windows-unsigned-orange)](#platform-compatibility-and-signing)
+[![Windows](https://img.shields.io/badge/Windows-preview-orange)](#platform-compatibility-and-signing)
 
 A local-first floating desktop utility that shows Codex and Claude quota, reset times, and subscription renewal dates in one card.
 
@@ -20,10 +20,10 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
     <td>
       <strong>Download v0.2.2 now</strong><br><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
-      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE (preview)</a><br>
       <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
       <a href="https://github.com/H-bai01/quota-assistant/releases">All Releases</a><br><br>
-      <strong>Unsigned notice:</strong> GitHub Community packages have no macOS Developer ID/Apple notarization or Windows Authenticode. Download only from this repository and verify SHA-256 first.
+      <strong>Risk notice:</strong> GitHub Community packages are unsigned; the Windows EXE is a preview without real Windows GUI validation. Download only from this repository and verify SHA-256 first.
     </td>
   </tr>
 </table>
@@ -31,11 +31,13 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 ## Download now
 
 > **Security notice: the v0.2.2 GitHub Community packages are not signed with macOS Developer ID/Apple notarization or Windows Authenticode. Download only from this repository's v0.2.2 Release and verify the file with `SHA256SUMS.txt`.**
+>
+> **Windows preview:** the EXE passed automated build, manifest, SBOM, SHA-256, and artifact-attestation checks, but it has not completed real Windows GUI validation. Installation, cold start, compact/expanded modes, drag, always-on-top, tray, lock/unlock, both languages, diagnostics copy, quit, uninstall, and downgrade must not be treated as validated.
 
 | Platform | Asset | Direct link |
 | --- | --- | --- |
 | macOS (Universal) | `quota-assistant_0.2.2_macos_universal.dmg` | [Download DMG](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg) |
-| Windows (x64) | `quota-assistant_0.2.2_windows_x64-setup.exe` | [Download EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
+| Windows (x64 preview) | `quota-assistant_0.2.2_windows_x64-setup.exe` | [Download preview EXE](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe) |
 | Checksums | `SHA256SUMS.txt` | [Download SHA-256 checksums](https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt) |
 | All versions | — | [View all Releases](https://github.com/H-bai01/quota-assistant/releases) |
 
@@ -88,12 +90,12 @@ Diagnostics report only the app version, operating system/architecture, and whet
 
 This table describes the **v0.2.2 GitHub Community release** and distinguishes package availability, installed-package validation, and signing status.
 
-| Platform | Architecture | Planned package | Automated build | Installed-package validation | Signing/notarization |
+| Platform | Architecture | Package | Automated build and provenance | Installed-package validation | Signing/notarization |
 | --- | --- | --- | --- | --- | --- |
-| macOS | Universal (Apple Silicon + Intel) | DMG | GitHub Actions | Final-file validation records are provided in the Release `release-gates.json` | Unsigned, not notarized |
-| Windows | x64 | NSIS EXE | GitHub Actions | No real Windows installed-package validation is provided; it is not listed as validated support | No Authenticode signature |
+| macOS | Universal (Apple Silicon + Intel) | DMG | Passed; includes manifest, SBOM, SHA-256, and attestation | Completed on a real Mac with the exact remote asset, including downgrade; records are provided in the Release `release-gates.json` | Unsigned, not notarized |
+| Windows preview | x64 | NSIS EXE | Passed; includes manifest, SBOM, SHA-256, and attestation | **Real Windows GUI validation has not been completed; this is not listed as validated support** | No Authenticode signature |
 
-The GitHub Community tier may publish unsigned packages only after tests, builds, SBOM, attestation, SHA-256, platform basic-startup validation, and prominent risk disclosure pass. A future signed-distribution tier additionally requires Developer ID + notarization and Authenticode.
+The binary assets in this release were built from source commit [`a28df7a21a5a84429db81d0770f0cf16f78dc95b`](https://github.com/H-bai01/quota-assistant/commit/a28df7a21a5a84429db81d0770f0cf16f78dc95b). The GitHub Community tier may publish unsigned packages; macOS still requires real-device validation, while Windows is provided only as a prominently disclosed unvalidated preview. Both platforms must still pass tests, build, manifest, SBOM, attestation, SHA-256, and asset-integrity checks. A future signed-distribution tier additionally requires Developer ID + notarization and Authenticode.
 
 ## Installation
 
@@ -112,6 +114,8 @@ The exact Gatekeeper message varies with macOS and local policy. This run did no
 1. Download the EXE and `SHA256SUMS.txt` from the same Release.
 2. Verify the file and run the installer.
 3. **Because the Community package has no Authenticode signature, SmartScreen may show “Unknown publisher.”** Continue only for the verified attachment from this repository.
+
+> **Preview notice:** this project has not validated installation or runtime behavior on a real Windows device. Use it only in an environment where preview-software risk is acceptable; if it behaves unexpectedly, quit and uninstall it. Do not treat the platform behaviors listed below as validated.
 
 ### Verify SHA-256
 
@@ -171,9 +175,9 @@ That warning is expected for the unsigned Community tier. Verify the repository 
 
 - Upgrade: quit the old version, then install the new package; the same app identifier preserves preferences and the minimal subscription summary.
 - macOS uninstall: disable startup, quit, then remove Quota Assistant from Applications.
-- Windows uninstall: disable startup, quit, then use **Settings → Apps → Installed apps**.
+- Windows preview uninstall: if installation succeeds, use the standard **Settings → Apps → Installed apps** flow; this process has not completed project real-device validation.
 - Data removal: ordinary uninstall does not remove preferences or WebView sessions. Read [PRIVACY.md](PRIVACY.md) before permanent removal; deleted config and WebView directories cannot be recovered.
-- Rollback: whether v0.2.1 is a verified rollback point is defined by the public assets, checksums, and real downgrade evidence recorded in the v0.2.2 Release notes and `release-gates.json`.
+- Rollback: macOS has completed a downgrade from this release binary to public v0.2.1; Windows preview downgrade remains unvalidated. The authoritative record is in the v0.2.2 Release notes and `release-gates.json`.
 
 ## Development and contribution
 
@@ -188,7 +192,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 ```
 
-Browser preview uses explicitly labeled sample data. Real quota reads require the Tauri desktop app. The current v0.2.2 test record is 20 frontend and 31 Rust tests passing; Release notes record the final release commit's validation counts.
+Browser preview uses explicitly labeled sample data. Real quota reads require the Tauri desktop app. The current v0.2.2 test record is 25 frontend and 33 Rust tests passing; Release notes record the final release commit's validation counts.
 
 Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md), the [release process](docs/RELEASE.md), [test matrix](docs/TEST-MATRIX.md), and [public repository boundary](docs/PUBLIC-REPOSITORY-BOUNDARY.md). No private vulnerability-reporting channel is configured yet; do not put vulnerability details in public Issues, and check [SECURITY.md](SECURITY.md) for current status.
 
@@ -204,7 +208,7 @@ This is not an official OpenAI or Anthropic product and is not endorsed by them.
 
 - Private read-only Codex/Claude endpoints, page structures, or authentication may change. Unknown responses fail closed and are never converted into guessed quota values.
 - Google Play and direct-web subscription reads do not yet have real-account validation.
-- Windows v0.2.2 still lacks real installation, cold start, tray, drag, lock, language, diagnostics, quit, and uninstall evidence.
+- Windows v0.2.2 is a preview and still lacks real installation, cold start, compact/expanded, drag, always-on-top, tray, lock/unlock, both languages, diagnostics copy, quit, uninstall, and downgrade evidence. Passing automated build and provenance checks does not validate those GUI behaviors.
 - The GitHub Community tier is unsigned; platform warnings and higher false-positive rates are known limitations.
 - No secure automatic update channel is enabled.
 

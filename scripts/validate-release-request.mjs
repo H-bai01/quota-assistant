@@ -14,6 +14,7 @@ function fail(message) {
 
 const version = argument("version");
 const commit = argument("commit");
+const candidateCommit = argument("candidate-commit");
 const notes = argument("notes");
 const releaseTier = argument("release-tier");
 if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) fail("Version must be a stable SemVer without a v prefix");
@@ -23,6 +24,37 @@ const head = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdou
 if (head !== commit) fail(`Checked-out commit ${head} does not match requested candidate ${commit}`);
 
 if (releaseTier) {
+  const windowsPreviewCandidate = "a28df7a21a5a84429db81d0770f0cf16f78dc95b";
+  if (version !== "0.2.2" || candidateCommit !== windowsPreviewCandidate) {
+    fail("The Windows preview exception is restricted to v0.2.2 Candidate a28df7a21a5a84429db81d0770f0cf16f78dc95b");
+  }
+  const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", candidateCommit, commit]);
+  if (ancestor.status !== 0) fail("Candidate commit must be an ancestor of the release commit");
+  const allowedReleaseDelta = new Set([
+    ".github/workflows/release.yml",
+    "README.en.md",
+    "README.md",
+    "docs/GITHUB-RELEASE-CHECKLIST.md",
+    "docs/KNOWN-LIMITATIONS.md",
+    "docs/RELEASE-GATES.md",
+    "docs/RELEASE.md",
+    "docs/TEST-MATRIX.md",
+    "docs/releases/v0.2.2.md",
+    "scripts/check-release-governance.mjs",
+    "scripts/check-release-governance.selftest.mjs",
+    "scripts/release-artifacts.selftest.mjs",
+    "scripts/validate-release-request.mjs",
+    "scripts/verify-release-candidate.mjs",
+  ]);
+  const delta = spawnSync("git", ["diff", "--name-only", `${candidateCommit}..${commit}`], { encoding: "utf8" });
+  if (delta.status !== 0) fail("Unable to inspect Candidate-to-release changes");
+  const changed = delta.stdout.trim().split("\n").filter(Boolean);
+  const prohibited = changed.filter((file) => !allowedReleaseDelta.has(file));
+  if (prohibited.length) fail(`Candidate-to-release delta contains prohibited files: ${prohibited.join(", ")}`);
+  if (!changed.includes("README.md") || !changed.includes("README.en.md") || !changed.includes("docs/releases/v0.2.2.md")) {
+    fail("Windows preview release must include the reviewed bilingual README and v0.2.2 release-note delta");
+  }
+
   const readmeDraftMarkers = {
     "README.md": [/候选/, /尚未发布/, /发布后生效/, /待发布/],
     "README.en.md": [/\bcandidate\b/i, /\bpending\b/i, /not (?:yet )?released/i, /after .*released/i],
@@ -32,6 +64,12 @@ if (releaseTier) {
     const content = fs.readFileSync(readme, "utf8");
     if (markers.some((pattern) => pattern.test(content))) {
       fail(`${readme} still contains candidate or not-yet-released wording`);
+    }
+    const previewRequirements = readme === "README.md"
+      ? ["Windows 预览版", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持", windowsPreviewCandidate]
+      : ["Windows preview", "has not completed real Windows GUI validation", "not listed as validated support", windowsPreviewCandidate];
+    if (previewRequirements.some((required) => !content.includes(required))) {
+      fail(`${readme} must disclose the exact v0.2.2 Windows preview status and binary source commit`);
     }
   }
 }
@@ -74,6 +112,14 @@ if (notes) {
       fail("GitHub community release notes must prominently disclose unsigned packages");
     }
   }
+  for (const required of [
+    "Windows preview",
+    "has not completed real Windows GUI validation",
+    "preview-unvalidated",
+    "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
+  ]) {
+    if (!content.includes(required)) fail(`Release notes are missing required Windows preview disclosure: ${required}`);
+  }
 }
 
-console.log(`Release request validated for v${version} at ${commit}.`);
+console.log(`Release request validated for v${version}: release ${commit}, binary Candidate ${candidateCommit}.`);

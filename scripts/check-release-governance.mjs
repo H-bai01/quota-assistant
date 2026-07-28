@@ -118,7 +118,7 @@ if (!release.includes("environment: production-release")) fail("release.yml must
 if (!release.includes("workflow_dispatch:")) fail("release.yml must be manually dispatched");
 if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish from push or tag events");
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
-if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify both installed-package evidence records");
+if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify candidate artifacts and required platform evidence");
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
 const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
 if (!releaseRequestValidator.includes("readmeDraftMarkers") || !releaseRequestValidator.includes("README.en.md")) {
@@ -133,8 +133,50 @@ for (const validator of ["scripts/validate-release-request.mjs", "scripts/verify
     fail(`${validator}: candidate and release validators must reject every non-community tier until real signature verification exists`);
   }
 }
-for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "windows_rollback_evidence_url", "macos_rollback_evidence_url"]) {
+for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "macos_rollback_evidence_url"]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
+}
+for (const previewGate of [
+  "release_commit",
+  "windows_preview_acknowledgement",
+  "WINDOWS_V0.2.2_PREVIEW_UNVALIDATED",
+  "--candidate-commit",
+  "--release-commit",
+  'test "$GITHUB_SHA" = "$RELEASE_COMMIT"',
+  "git/ref/heads/main",
+]) {
+  if (!release.includes(previewGate)) fail(`release.yml is missing the v0.2.2 Windows preview gate: ${previewGate}`);
+}
+for (const prohibitedWindowsClaimInput of [
+  "windows_validated_at",
+  "windows_evidence_url",
+  "windows_rollback_evidence_url",
+]) {
+  if (release.includes(prohibitedWindowsClaimInput)) {
+    fail(`release.yml must not accept false Windows validation evidence for v0.2.2 preview: ${prohibitedWindowsClaimInput}`);
+  }
+}
+if (!release.includes('--target "$RELEASE_COMMIT"')) fail("release.yml must tag the reviewed release commit");
+const candidateVerifier = fs.readFileSync(path.join(root, "scripts/verify-release-candidate.mjs"), "utf8");
+for (const required of [
+  "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
+  "preview-unvalidated",
+  "installedPackageGuiValidated: false",
+  "releaseCommit",
+  "candidateCommit: commit",
+]) {
+  if (!candidateVerifier.includes(required)) fail(`Candidate verifier is missing the fixed Windows preview boundary: ${required}`);
+}
+for (const prohibited of ["windows-validated-at", "windows-evidence-url", "windows-rollback-evidence-url"]) {
+  if (candidateVerifier.includes(prohibited)) fail(`Candidate verifier must not accept Windows real-device claims: ${prohibited}`);
+}
+for (const required of [
+  "merge-base",
+  "--is-ancestor",
+  "allowedReleaseDelta",
+  "Candidate-to-release delta contains prohibited files",
+]) {
+  if (!releaseRequestValidator.includes(required)) fail(`Release request validator is missing the restricted dual-commit gate: ${required}`);
 }
 const releaseJobSection = release.split(/^jobs:\s*$/m)[1] ?? "";
 const releaseJobs = [...releaseJobSection.matchAll(/^  ([a-zA-Z0-9_-]+):\s*$/gm)].map((match) => match[1]);
@@ -252,6 +294,12 @@ for (const readmeName of readmes) {
   if (!/未签名|unsigned/i.test(content) || !/Gatekeeper/.test(content) || !/SmartScreen/.test(content)) {
     fail(`${readmeName}: unsigned Gatekeeper and SmartScreen risks must be prominent and explicit`);
   }
+  const previewRequirements = readmeName === "README.md"
+    ? ["Windows 预览版", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持", "a28df7a21a5a84429db81d0770f0cf16f78dc95b"]
+    : ["Windows preview", "has not completed real Windows GUI validation", "not listed as validated support", "a28df7a21a5a84429db81d0770f0cf16f78dc95b"];
+  for (const required of previewRequirements) {
+    if (!content.includes(required)) fail(`${readmeName}: missing Windows preview disclosure: ${required}`);
+  }
   const localImages = [...new Set([
     ...[...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1]),
     ...[...content.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map((match) => match[1]),
@@ -270,6 +318,15 @@ for (const readmeName of readmes) {
       fail(`${readmeName}: .jpg image has a different binary format: ${target}`);
     }
   }
+}
+const releaseNotes = fs.readFileSync(path.join(root, `docs/releases/v${packageVersion}.md`), "utf8");
+for (const required of [
+  "Windows preview",
+  "has not completed real Windows GUI validation",
+  "preview-unvalidated",
+  "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
+]) {
+  if (!releaseNotes.includes(required)) fail(`v${packageVersion} release notes are missing Windows preview disclosure: ${required}`);
 }
 if (!fs.readFileSync(path.join(root, "README.md"), "utf8").includes('<a href="README.en.md">English</a>')) fail("README.md must link to README.en.md");
 if (!fs.readFileSync(path.join(root, "README.en.md"), "utf8").includes('<a href="README.md">简体中文</a>')) fail("README.en.md must link to README.md");

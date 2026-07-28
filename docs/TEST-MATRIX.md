@@ -15,7 +15,7 @@
 | 公开边界 | 精确 allowlist、denylist、个人路径与凭据形态扫描 | 未知文件默认停止 |
 | 候选可追溯 | 统一文件名、manifest、SBOM、attestation | 缺一即停止 |
 
-## Windows 实机门
+## Windows 实机门（v0.2.2 预览版待完成）
 
 | 场景 | 预期 | 证据要求 |
 | --- | --- | --- |
@@ -44,7 +44,10 @@
 - `automated-pass`：只表示自动测试或构建通过。
 - `candidate`：两个平台候选包、SBOM、manifest 和 attestation 已生成。
 - `platform-validated`：对应平台安装文件已在真实设备上通过且 SHA 匹配。
-- `release-ready`：Windows 与 macOS 都是 `platform-validated`，发布说明已审阅，人工批准环境已放行。
+- `preview-unvalidated`：安装附件通过自动构建、manifest、SBOM、SHA-256 和 attestation，但没有对应平台实机 GUI 结论；不得等同于 `platform-validated` 或“正式支持”。
+- `release-ready`：所有被声明为已验证支持的平台都是 `platform-validated`；任何附带预览平台都完整披露 `preview-unvalidated`，发布说明已审阅，人工批准环境已放行。
 - `released`：单一发布 job 成功创建标签和 GitHub Release，并完成公开下载复验。
 
 未达到 `platform-validated` 时，不得在 README、Release notes 或报告中声称该平台“已正式支持”。
+
+v0.2.2 只允许 Windows 以 `preview-unvalidated` 状态附带；上述 Windows 实机矩阵全部保留为后续待验收项。macOS 必须为 `platform-validated`，且该例外不适用于其他版本或 Candidate。

@@ -19,19 +19,19 @@ on:
         required: true
         type: string
       candidate_commit:
-        description: Exact 40-character commit SHA used by the Candidate workflow
+        description: Exact binary-source commit; v0.2.2 Windows preview is restricted to a28df7a21a5a84429db81d0770f0cf16f78dc95b
+        required: true
+        type: string
+      release_commit:
+        description: Exact final documentation/governance commit to tag; only the reviewed allowlisted delta from Candidate is accepted
         required: true
         type: string
       windows_sha256:
-        description: SHA-256 recorded during the Windows installed-package validation
+        description: SHA-256 from the Windows Candidate manifest; this is not installed-package validation
         required: true
         type: string
-      windows_validated_at:
-        description: Windows validation time in ISO-8601 UTC form
-        required: true
-        type: string
-      windows_evidence_url:
-        description: HTTPS URL to durable Windows validation evidence
+      windows_preview_acknowledgement:
+        description: Enter WINDOWS_V0.2.2_PREVIEW_UNVALIDATED; no Windows GUI or downgrade evidence is claimed
         required: true
         type: string
       macos_sha256:
@@ -48,10 +48,6 @@ on:
         type: string
       previous_release_tag:
         description: Previous public release tag, or none only for the first public release
-        required: true
-        type: string
-      windows_rollback_evidence_url:
-        description: HTTPS evidence of Windows downgrade to the previous release, or none for the first public release
         required: true
         type: string
       macos_rollback_evidence_url:
@@ -82,7 +78,8 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ inputs.candidate_commit }}
+          ref: ${{ inputs.release_commit }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -92,12 +89,15 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
           RELEASE_NOTES_PATH: ${{ inputs.release_notes_path }}
           RELEASE_TIER: ${{ inputs.release_tier }}
         run: |
+          test "$GITHUB_SHA" = "$RELEASE_COMMIT"
           node scripts/validate-release-request.mjs \
             --version "$VERSION" \
-            --commit "$CANDIDATE_COMMIT" \
+            --commit "$RELEASE_COMMIT" \
+            --candidate-commit "$CANDIDATE_COMMIT" \
             --release-tier "$RELEASE_TIER" \
             --notes "$RELEASE_NOTES_PATH"
           npm run version:check -- --tag "v$VERSION"
@@ -107,8 +107,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ inputs.candidate_run_id }}
           CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
           VERSION: ${{ inputs.version }}
         run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$RELEASE_COMMIT"
           test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .path)" = ".github/workflows/candidate.yml"
           test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .head_sha)" = "$CANDIDATE_COMMIT"
           test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .conclusion)" = "success"
@@ -149,13 +151,12 @@ jobs:
           VERSION: ${{ inputs.version }}
           CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
           WINDOWS_SHA256: ${{ inputs.windows_sha256 }}
-          WINDOWS_VALIDATED_AT: ${{ inputs.windows_validated_at }}
-          WINDOWS_EVIDENCE_URL: ${{ inputs.windows_evidence_url }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+          WINDOWS_PREVIEW_ACKNOWLEDGEMENT: ${{ inputs.windows_preview_acknowledgement }}
           MACOS_SHA256: ${{ inputs.macos_sha256 }}
           MACOS_VALIDATED_AT: ${{ inputs.macos_validated_at }}
           MACOS_EVIDENCE_URL: ${{ inputs.macos_evidence_url }}
           PREVIOUS_RELEASE_TAG: ${{ inputs.previous_release_tag }}
-          WINDOWS_ROLLBACK_EVIDENCE_URL: ${{ inputs.windows_rollback_evidence_url }}
           MACOS_ROLLBACK_EVIDENCE_URL: ${{ inputs.macos_rollback_evidence_url }}
           RELEASE_TIER: ${{ inputs.release_tier }}
         run: |
@@ -164,16 +165,15 @@ jobs:
             --output release-assets \
             --version "$VERSION" \
             --commit "$CANDIDATE_COMMIT" \
+            --release-commit "$RELEASE_COMMIT" \
             --release-tier "$RELEASE_TIER" \
             --candidate-run-id "${{ inputs.candidate_run_id }}" \
             --windows-sha256 "$WINDOWS_SHA256" \
-            --windows-validated-at "$WINDOWS_VALIDATED_AT" \
-            --windows-evidence-url "$WINDOWS_EVIDENCE_URL" \
+            --windows-preview-acknowledgement "$WINDOWS_PREVIEW_ACKNOWLEDGEMENT" \
             --macos-sha256 "$MACOS_SHA256" \
             --macos-validated-at "$MACOS_VALIDATED_AT" \
             --macos-evidence-url "$MACOS_EVIDENCE_URL" \
             --previous-release-tag "$PREVIOUS_RELEASE_TAG" \
-            --windows-rollback-evidence-url "$WINDOWS_ROLLBACK_EVIDENCE_URL" \
             --macos-rollback-evidence-url "$MACOS_ROLLBACK_EVIDENCE_URL"
       - name: Verify GitHub artifact attestations
         env:
@@ -188,12 +188,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
-          CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
           RELEASE_NOTES_PATH: ${{ inputs.release_notes_path }}
         run: >-
           gh release create "v$VERSION"
           release-assets/*
           --repo "$GITHUB_REPOSITORY"
-          --target "$CANDIDATE_COMMIT"
+          --target "$RELEASE_COMMIT"
           --title "额度助手 v$VERSION"
           --notes-file "$RELEASE_NOTES_PATH"

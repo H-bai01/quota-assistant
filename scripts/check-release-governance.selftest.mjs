@@ -88,6 +88,31 @@ try {
     await fs.appendFile(path.join(directory, "README.en.md"), "\nCandidate release pending.\n");
   }, /candidate or not-yet-released README wording/);
 
+  await expectRejected("readme-missing-windows-preview-disclosure", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("尚未完成 Windows 实机 GUI 验收", "Windows 状态待说明"));
+  }, /missing Windows preview disclosure/);
+
+  await expectRejected("readme-false-windows-validation-claim", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text
+      .replaceAll("has not completed real Windows GUI validation", "has completed real Windows GUI validation")
+      .replaceAll("not listed as validated support", "listed as validated support"));
+  }, /missing Windows preview disclosure/);
+
+  await expectRejected("release-notes-missing-windows-preview-disclosure", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("preview-unvalidated", "windows-status-unknown"));
+  }, /release notes are missing Windows preview disclosure/);
+
+  await expectRejected("workflow-accepts-windows-evidence", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    await fs.appendFile(file, "\n# windows_evidence_url\n");
+  }, /must not accept false Windows validation evidence/);
+
   await expectRejected("readme-centered-title", async (directory) => {
     const file = path.join(directory, "README.md");
     const text = await fs.readFile(file, "utf8");
@@ -159,7 +184,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (20/20).");
+  console.log("Release governance adversarial tests passed (24/24).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
