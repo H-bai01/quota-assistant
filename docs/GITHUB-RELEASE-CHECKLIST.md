@@ -1,81 +1,59 @@
-# GitHub 发布与分享清单
+# GitHub 正式发布清单
 
-## 需要提前安装或准备什么
+## 仓库管理员一次性配置
 
-本机 Windows 不需要安装 macOS 构建工具，也不能直接构建 macOS 安装包。macOS 包由 GitHub Actions 的 `macos-latest` runner 构建。
+- [ ] GitHub Actions 已启用。
+- [ ] 建立 `production-release` Environment。
+- [ ] 配置 required reviewers；计划支持时启用 prevent self-review。
+- [ ] Environment 不向候选构建提供签名秘密。
+- [ ] 默认 `GITHUB_TOKEN` 权限保持只读，只有发布 job 显式申请 `contents: write`。
+- [ ] 分支保护要求 `CI` 全部通过。
 
-本机需要：
+## 候选构建前
 
-- Git
-- Node.js 20+
-- Rust stable
-- npm 依赖已安装
+- [ ] 精确版本与候选提交已经确定。
+- [ ] 当前及历史凭据/个人路径扫描通过。
+- [ ] `.github/public-files.json` 只加入已审阅的公开文件。
+- [ ] `node scripts/check-release-governance.mjs` 通过。
+- [ ] CI 的前端、Rust、安全、许可证检查全部通过。
+- [ ] `docs/releases/<version>.md` 包含模板要求的五个章节。
 
-GitHub 需要：
+## 候选构建
 
-- 一个 GitHub 仓库
-- GitHub Actions 已启用
-- 代码已推送到默认分支
+- [ ] 手动运行 `Candidate`，输入不带 `v` 的版本和精确 40 位提交。
+- [ ] Windows 与 macOS job 分别上传候选附件。
+- [ ] 文件名、平台 manifest、CycloneDX SBOM 正确。
+- [ ] attestation job 成功。
+- [ ] 记录候选 run ID；不要创建 tag 或 Release。
 
-macOS Universal 构建需要的 Rust targets 已经在 CI/release workflow 中自动安装：
+## 实机验收
 
-```bash
-rustup target add aarch64-apple-darwin x86_64-apple-darwin
-```
+- [ ] Windows 使用候选 run 中的实际 EXE，完成安装、冷启动、核心流程、退出和卸载。
+- [ ] macOS 使用同一候选 run 中的实际 DMG，完成安装、冷启动、核心流程、退出和卸载。
+- [ ] 两个平台分别记录安装文件 SHA-256、UTC 日期、passed 结论和持久 HTTPS 证据。
+- [ ] 证据中没有用户数据、令牌、Cookie、邮箱、个人路径或其他敏感信息。
+- [ ] SHA-256 与 candidate manifest 完全一致。
 
-你不需要在 Windows 本机安装这两个 target。
+## 回退检查
 
-## 第一次上传到 GitHub
+- [ ] 首个公共版本明确写“无上一公共回退点”。
+- [ ] 第二个公共版本起，上一 Release、安装包与校验文件仍可公开下载且校验通过。
+- [ ] 第二个公共版本起，两个平台都实际完成本次候选到上一正式版的降级恢复。
+- [ ] Release notes 写明可回退版本和数据兼容限制。
 
-如果本地仓库还没有 remote，先在 GitHub 创建一个空仓库，然后执行：
+## 正式发布
 
-```bash
-git remote add origin https://github.com/<owner>/<repo>.git
-git branch -M main
-git add .
-git commit -m "Prepare Windows and macOS unsigned release"
-git push -u origin main
-```
+- [ ] 手动运行 `Publish approved release`，完整输入候选和双平台证据。
+- [ ] `production-release` 独立审批人复核后批准。
+- [ ] 发布 job 核对候选 run、提交、版本、manifest、SHA、SBOM 和 attestation。
+- [ ] 工作流自动生成 `release-gates.json` 与 `SHA256SUMS.txt`。
+- [ ] 只有一条 `gh release create` 创建一次 Release。
+- [ ] 不删除、不移动、不覆盖任何现有公开 tag 或 Release。
 
-如果已经有 remote，只需要：
+## 发布后
 
-```bash
-git add .
-git commit -m "Prepare Windows and macOS unsigned release"
-git push origin main
-```
-
-## 生成可分享版本
-
-推送 `v*` tag 会触发 release workflow：
-
-```bash
-git tag v0.2.1
-git push origin v0.2.1
-```
-
-构建完成后，到 GitHub 仓库的 Releases 页面检查 draft release。附件应包含 Tauri 生成的 Windows 安装包和 macOS Universal 应用/DMG。先分别在对应平台检查附件可安装、可启动，再发布草稿。
-
-确认无误后点击 Publish release，然后把 Release 链接发给用户。
-
-## 发给 Mac 用户时的说明
-
-当前 macOS 包没有 Developer ID 正式签名且未公证。用户首次打开可能会被 Gatekeeper 拦截，可以这样打开：
-
-1. 下载 macOS Universal DMG 或应用包。
-2. 打开 DMG 或解压应用包，把应用拖到 Applications 或任意测试目录。
-3. 右键点击应用，选择 Open。
-4. 在系统提示里再次选择 Open。
-5. 如果仍被拦截，到 System Settings -> Privacy & Security 里允许打开。
-
-## 以后公开分发还需要什么
-
-如果要面向非技术用户公开分发，建议补：
-
-- Windows 代码签名证书。
-- Apple Developer ID Application 证书。
-- Apple Team ID。
-- Apple app-specific password。
-- GitHub Secrets 中的签名和公证配置。
-
-这些账号、证书和密码不能由代码生成，需要项目所有者申请或购买。
+- [ ] commit → tag → manifest → installer → SHA256SUMS → attestation 一致。
+- [ ] 匿名公开下载所有附件成功。
+- [ ] 在全新环境重新校验 `SHA256SUMS.txt`。
+- [ ] 对应平台公开附件再次完成冷启动。
+- [ ] 清理临时下载、挂载、测试安装和测试进程。

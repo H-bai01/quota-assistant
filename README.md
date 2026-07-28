@@ -19,16 +19,17 @@
 ## 隐私边界
 
 - 无遥测、无统计、无崩溃上报、无第三方追踪。
-- Codex 访问令牌只发送给 ChatGPT 官方额度接口。
+- Codex 访问令牌只由 Rust 后端发送给固定的 ChatGPT 官方 HTTPS 额度与订阅来源接口，不进入 WebView、JavaScript、URL、页面、日志或错误。
 - Claude Cookie 仅由应用内 WebView 保管，并只发送给 Claude 官方接口。
 - 应用持久化悬浮窗偏好和最小化的订阅摘要（套餐、来源、周期、续期日期、状态），不复制账户令牌、Cookie、账号邮箱、聊天内容或原始页面响应。
 - 详细说明见 [PRIVACY.md](PRIVACY.md) 和 [SECURITY.md](SECURITY.md)。
 
-## 下载与构建状态
+## 候选与支持状态
 
-- 当前本机候选包：Apple Silicon（`aarch64`）macOS DMG，仅用于本机验证。
-- GitHub Actions：构建 Windows 包和 macOS Universal 包；Universal 包同时支持 Apple Silicon 与 Intel Mac。
-- 当前包没有 Windows 代码签名，也没有 macOS Developer ID 签名和 Apple 公证。macOS 本地构建可能带 ad-hoc 签名，但仍会触发 Gatekeeper 提示。
+- GitHub Actions 只负责生成候选包；CI 构建成功不等于对应平台已经正式支持。
+- macOS Universal 候选包需在 Intel 与 Apple Silicon 的安装环境中完成冷启动、核心流程和卸载验收。
+- Windows NSIS 候选包需在真实 Windows 环境中完成安装、冷启动、托盘、拖动、锁定、语言、诊断复制、退出和卸载验收。
+- 当前候选包没有 Windows Authenticode 签名，也没有 macOS Developer ID 签名和 Apple 公证，只能作为测试候选，不能据此宣称已经完成正式平台支持。
 
 ## 安装
 
@@ -57,12 +58,12 @@
 - macOS 卸载：从“应用程序”中删除“额度助手”。
 - Windows 卸载：前往“设置 → 应用 → 已安装的应用”，找到“额度助手”并选择卸载。
 - 彻底清除：退出应用并完成普通卸载后，分别删除以下目录：macOS 配置目录 `~/Library/Application Support/app.quotaassistant.desktop`、macOS WebView 目录 `~/Library/WebKit/app.quotaassistant.desktop`；Windows 配置目录 `%APPDATA%\app.quotaassistant.desktop`、Windows WebView 目录 `%LOCALAPPDATA%\app.quotaassistant.desktop`。配置目录保存偏好与订阅摘要，WebView 目录保存登录会话；两者用途不同，必须分别处理。删除后不可恢复。
-- 回退：退出当前版本，重新安装上一版安装包。数据格式不保证向旧版本兼容；如旧版启动异常，应先备份后清除应用数据再启动。
-- 当前没有启用自动更新。请只从同一 GitHub 仓库的正式 Release 获取升级或回退包。
+- 回退：`v0.2.1` 是本仓库第一个公共 Release，没有更早的公共安装包，因此当前不存在可验证的公共二进制回退点。下一正式版本发布前必须确认 `v0.2.1` 附件和校验和仍可下载，并实际完成一次降级恢复。
+- 当前没有启用安全更新通道；托盘中的更新入口已禁用并明确显示“暂未启用”。请只从同一 GitHub 仓库的正式 Release 获取升级包。
 
 ## 本地开发
 
-需要 Node.js 20+、Rust stable 和 macOS 上的 Xcode Command Line Tools。
+需要 Node.js 20.19.0 或更高版本、项目锁定的 Rust 工具链，以及 macOS 上的 Xcode Command Line Tools 或 Windows 上的 Tauri 构建依赖。
 
 ```bash
 npm ci
@@ -76,10 +77,12 @@ npm run tauri build
 
 ## 发布状态
 
-版本为 0.2.1，应用标识为 `app.quotaassistant.desktop`，可与原版并存。本机生产构建输出 Apple Silicon 包；GitHub Actions 生成 Windows 和 macOS Universal 候选包，并先创建草稿 Release 供人工检查。自动更新通道会在本项目拥有独立发布仓库和签名密钥后启用，避免误装上游或第三方版本。
+当前隔离候选基于 0.2.1，应用标识为 `app.quotaassistant.desktop`。候选构建、对应平台实机验收和正式 Release 是三个独立阶段；必需实机项未完成时不得创建正式版本。版本号以 `package.json` 为来源，通过脚本同步并校验 Cargo、Tauri、User-Agent、标签和 Release 输入。
 
 ## 许可与来源
 
 MIT License。原始项目版权归 Quota Float contributors；本项目新增与修改部分归 Quota Assistant contributors。完整许可见 [LICENSE](LICENSE)。
 
 本项目不是 OpenAI 或 Anthropic 的官方产品，也未获得其背书。OpenAI、ChatGPT、Codex、Anthropic 和 Claude 等名称及商标归各自权利人所有。
+
+界面只使用项目自有的中性服务标识；逐文件来源、哈希和权利状态见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。

@@ -2,19 +2,19 @@
 
 ## 一句话定位
 
-额度助手是一个 Tauri 2 macOS 桌面悬浮窗，统一展示 Codex 与 Claude 额度、重置时间、重置机会和订阅续期日期。
+额度助手是一个基于 Tauri 2 的 Windows/macOS 桌面悬浮窗候选项目，统一展示 Codex 与 Claude 额度、重置时间、重置机会和订阅续期日期。平台支持必须以对应安装包的实机验收记录为准，不能由 CI 构建成功代替。
 
 ## 当前技术栈
 
 - 前端：React 19、TypeScript、Vite、Phosphor Icons。
 - 桌面壳：Tauri 2、Rust。
-- 网络：Rust `reqwest` 调用 ChatGPT 后端只读额度接口。
+- 网络：Rust `reqwest` 只访问固定官方 HTTPS 额度和订阅来源接口；认证信息不进入外部 WebView。
 - 测试：Vitest 覆盖前端格式化与快照合并逻辑；Rust 覆盖 Codex 响应解析逻辑。
 
 ## 主要功能
 
 - 双服务悬浮卡片：展示 Codex 周额度与重置机会，以及 Claude 5 小时和周额度。
-- Apple 订阅确认：通过应用内官方 Apple 页面读取 ChatGPT 与 Claude 的套餐和续期日期。
+- Apple 订阅确认：通过受限官方 Apple 页面窗口，只接收 ChatGPT 与 Claude 的套餐、状态和续期日期等最少字段。
 - 到期复核：缓存已确认日期，仅在到期前 1 天自动复核；会话失效时保留日期并提示登录。
 - 桌面行为：无边框、透明、置顶、可拖动、可锁定鼠标穿透、可托盘显示/隐藏/刷新/解锁/退出。
 - 跨平台构建：同一套前端 UI/动效代码输出 Windows unsigned 包和 macOS Universal unsigned 包。
@@ -32,12 +32,12 @@
 - `src-tauri/src/codex.rs`：读取本地 Codex auth、拼接请求头、调用额度与 reset credits 接口、解析响应。
 - `src-tauri/src/subscription.rs`：识别订阅来源、管理 Apple 官方登录页、解析续期日期并维护本地缓存。
 - `src-tauri/src/lib.rs`：Tauri command、缓存锁、偏好持久化、托盘、窗口状态、锁定穿透。
-- `.github/workflows/release.yml`：生成 Windows unsigned 和 macOS Universal unsigned 发布包。
+- `.github/workflows/release.yml`：在候选产物和实机证据均通过后，由单一受保护发布 job 创建一次正式 Release。
 
 ## 数据与安全边界
 
 - 只读取本机 Codex 登录文件，默认路径来自 `CODEX_HOME` 或用户目录 `.codex/auth.json`。
-- 不复制 token，不上传 token 到第三方，不记录原始接口响应。
+- 不复制 token，不上传 token 到第三方，不把 token 注入 WebView、JavaScript、URL、页面、日志或错误。
 - 请求头里的 token 与账号 ID 视为敏感信息。
 - 接口响应限制为 1 MB，auth 文件限制为 256 KB。
 - 不兑换重置机会，不修改账号设置。

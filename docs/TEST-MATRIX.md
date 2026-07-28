@@ -1,35 +1,50 @@
-# 测试矩阵
+# 测试矩阵与正式发布门
 
-| 范围 | 场景 | 预期 | 状态 |
-| --- | --- | --- | --- |
-| 数据 | Codex 正常登录 | 显示真实 5 小时窗口、周窗口与会员类型 | 待 Windows/macOS 桌面环境验证 |
-| 数据 | 未登录或登录过期 | 显示登录提示，不暴露响应或 token | 待 Windows/macOS 桌面环境验证 |
-| 数据 | 401/403/429/断网 | 安全错误文案、保留旧数据并退避 | 快照合并单元测试通过，待桌面集成验证 |
-| 数据 | 变形或缺字段响应 | 不崩溃，不显示虚假额度 | 解析器单元测试覆盖，待集成验证 |
-| 登录态 | Windows `CODEX_HOME` 或用户目录 `.codex/auth.json` | 可以读取本机 Codex 登录态 | 待 Windows 实机验证 |
-| 登录态 | macOS `CODEX_HOME` 或 `~/.codex/auth.json` | 可以读取本机 Codex 登录态 | 待 macOS 实机验证 |
-| 订阅 | Apple 账号登录与双重认证 | 使用独立官方登录窗口，不读取密码或验证码 | macOS 实机通过 |
-| 订阅 | ChatGPT 与 Claude 同一 Apple 账号订阅 | 读取套餐及续期日期并写回主界面 | macOS 实机通过：均为 8 月 8 日续期 |
-| 订阅 | Apple 会话失效 | 保留上次确认日期；到期前 1 天复核失败时提示登录 | macOS 实机通过 |
-| 订阅 | 错误 Apple 账号 | 可退出应用内账号并改用其他 Apple 账号，不影响 Mac 系统账号 | macOS 实机通过 |
-| 窗口 | 拖动、锁定、鼠标穿透 | 锁定后不拦截编辑器输入，托盘可解锁 | 待 Windows/macOS 验证 |
-| 窗口 | 多显示器、缩放、移除显示器 | 恢复到可见工作区 | 依赖 window-state 插件，待实机验证 |
-| 托盘 | Windows 托盘菜单 | 显示/隐藏、刷新、解锁、固定、语言切换、开机启动、退出可用 | 待 Windows 实机验证 |
-| 菜单栏 | macOS 菜单栏托盘 | 显示/隐藏、刷新、解锁、固定、语言切换、开机启动、退出可用 | 待 macOS 实机验证 |
-| 视觉 | 悬浮球和展开卡片 | Windows/macOS 使用同一 CSS 参数，尺寸、透明度、圆角、文字布局保持一致 | 待双平台截图验收 |
-| 生命周期 | 单实例、关闭隐藏、休眠恢复 | 无重复后台进程，窗口可恢复 | 待实机验证 |
-| 性能 | 空闲 CPU/内存 | 无持续高 CPU，记录平台基线 | 待安装包验证 |
-| 构建 | Windows 未签名包 | CI 生成 `quota-assistant-windows-unsigned` 构建产物 | CI/Release 验证 |
-| 构建 | macOS Universal 未正式签名包 | CI 生成 `quota-assistant-macos-universal-unsigned` 构建产物，支持 Apple Silicon 和 Intel | CI/Release 验证 |
-| 隐私 | 日志与配置扫描 | 无 token、账号 ID、原始响应 | 静态审查通过，待安装包扫描 |
+## 自动化门
 
-## 发布门槛
+| 范围 | 必须通过的检查 | 阻断规则 |
+| --- | --- | --- |
+| 前端 | Node 20.19.0、`npm ci`、测试、生产构建 | 任一失败即停止 |
+| npm 安全 | `npm audit --audit-level=high` | high/critical 非零即停止 |
+| npm 许可证 | 锁文件依赖必须声明许可证，拒绝 AGPL/GPL/SSPL | 任一缺失或拒绝许可证即停止 |
+| Rust | `rust-toolchain.toml` 固定 Rust 1.97.1、测试、`fmt --check`、Clippy `-D warnings` | 任一失败即停止 |
+| Rust 安全（完整锁文件） | `cargo audit` | 任一已知漏洞即停止；失维护、未定义行为与撤回项同时报告 |
+| Rust 安全（支持目标） | `cargo deny check advisories` | macOS/Windows 可达的漏洞、未定义行为、撤回包或工作区直接失维护依赖即停止；纯传递失维护依赖记录并跟踪 |
+| Rust 许可证 | `cargo deny check licenses` | 不在审核清单即停止 |
+| 工作流 | Action 完整 SHA、固定 runner、最小权限、单一发布者 | 静态护栏失败即停止 |
+| 公开边界 | 精确 allowlist、denylist、个人路径与凭据形态扫描 | 未知文件默认停止 |
+| 候选可追溯 | 统一文件名、manifest、SBOM、attestation | 缺一即停止 |
 
-发布前应满足：
+## Windows 实机门
 
-- 前端测试、前端构建、Rust 测试通过。
-- Windows 和 macOS CI bundle artifact 成功生成。
-- Windows 实机完成安装、启动、托盘、拖动、锁定、语言切换、退出验证。
-- macOS 实机完成首次打开、菜单栏托盘、透明悬浮窗、展开/收起、拖动、置顶、读取 `~/.codex/auth.json` 验证。
-- macOS 实机完成 Apple 订阅登录、正确账号切换、日期缓存与登录失效降级验证。
-- 严重和高风险问题清零。
+| 场景 | 预期 | 证据要求 |
+| --- | --- | --- |
+| 安装 | 真实 NSIS 候选可安装 | 系统版本、文件 SHA、安装结果 |
+| 冷启动 | 无旧实例/开发进程时独立启动 | 进程与核心界面证据 |
+| 窗口 | 悬浮窗拖动、锁定、置顶可用 | 操作记录 |
+| 托盘 | 显示/隐藏、刷新、解锁、语言、退出可用 | 操作记录 |
+| 诊断 | Windows 系统信息和应用发现正确 | 去个人信息结果 |
+| 复制 | 原生剪贴板复制成功 | 无敏感内容的结果 |
+| 卸载 | 正常卸载；残留与数据后果符合文档 | 卸载记录 |
+
+## macOS 实机门
+
+| 场景 | 预期 | 证据要求 |
+| --- | --- | --- |
+| 安装 | 真实 Universal DMG 候选可安装 | 系统版本、架构、文件 SHA、安装结果 |
+| 冷启动 | 无旧实例/开发进程时独立启动 | 进程与核心界面证据 |
+| 窗口 | 悬浮窗拖动、锁定、置顶可用 | 操作记录 |
+| 菜单栏 | 显示/隐藏、刷新、解锁、语言、退出可用 | 操作记录 |
+| 诊断 | macOS 系统信息和应用发现正确 | 去个人信息结果 |
+| 复制 | 原生剪贴板复制成功 | 无敏感内容的结果 |
+| 卸载 | 正常卸载；残留与数据后果符合文档 | 卸载记录 |
+
+## 状态词约束
+
+- `automated-pass`：只表示自动测试或构建通过。
+- `candidate`：两个平台候选包、SBOM、manifest 和 attestation 已生成。
+- `platform-validated`：对应平台安装文件已在真实设备上通过且 SHA 匹配。
+- `release-ready`：Windows 与 macOS 都是 `platform-validated`，发布说明已审阅，人工批准环境已放行。
+- `released`：单一发布 job 成功创建标签和 GitHub Release，并完成公开下载复验。
+
+未达到 `platform-validated` 时，不得在 README、Release notes 或报告中声称该平台“已正式支持”。

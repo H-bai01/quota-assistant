@@ -1,79 +1,78 @@
-# 发布说明
+# 发布流程
 
-## 当前发布目标
+正式交付严格分为三个阶段。任何阶段都不能用后一个阶段的名称替代前一个阶段；CI 构建成功只代表候选包可供验收，不代表平台已正式支持或版本已经发布。
 
-额度助手 0.2.1 使用同一套 React/CSS/Tauri 代码构建 Windows 和 macOS 版本。视觉效果、悬浮球、展开卡片、透明度、圆角和动画参数都应保持在共享前端代码中，避免维护 Windows/macOS 两套 UI。
+## 阶段一：生成候选包
 
-当前发布默认输出未正式签名的包：
+1. 默认分支的 `CI` 全部通过，包括前端、Rust、格式、Clippy、npm/Rust 漏洞与许可证审计、公开文件边界和工作流供应链护栏。
+2. 手动运行 `Candidate`，输入不带 `v` 的版本号和精确 40 位提交 SHA。
+3. 工作流在固定的 Windows 2022 与 macOS 14 runner 分别构建未签名候选包，统一命名并附带平台 CycloneDX SBOM 和候选清单。
+4. 独立 attestation job 对候选文件建立 GitHub artifact attestation。构建 job 只有 `contents: read`，不接触发布令牌或签名秘密。
 
-- Windows：Tauri 生成的安装包。
-- macOS：Tauri 生成的 Universal 应用/DMG。
+候选附件固定为：
 
-本机验证包是 Apple Silicon（`aarch64`）DMG；GitHub Actions 的 macOS 包使用 Universal 构建，同时支持 Apple Silicon 和 Intel Mac。
+- `quota-assistant_<version>_windows_x64-setup.exe`
+- `quota-assistant_<version>_windows.cdx.json`
+- `quota-assistant_<version>_windows.manifest.json`
+- `quota-assistant_<version>_macos_universal.dmg`
+- `quota-assistant_<version>_macos.cdx.json`
+- `quota-assistant_<version>_macos.manifest.json`
 
-## 发布一个 GitHub 下载版本
+候选附件保留 14 天。不要将它们称为正式 Release。
 
-推送 `v*` tag 会触发 `.github/workflows/release.yml`，构建 Windows unsigned 包和 macOS Universal unsigned 包，并上传到草稿 GitHub Release。
+## 阶段二：对应平台实机验收
 
-```bash
-git tag v0.2.1
-git push origin v0.2.1
-```
+Windows 候选包必须在真实 Windows 设备上完成安装、冷启动、核心界面、托盘、拖动、锁定、语言、诊断、复制、退出和卸载。macOS 候选包必须在真实 Mac 上完成安装、冷启动、核心界面、菜单栏、拖动、锁定、语言、诊断、复制、退出和卸载。
 
-工作流完成后，到 GitHub Releases 检查草稿发布，确认说明和附件后手动发布。
+每个平台都必须记录：
 
-## CI 与构建
+- 平台和系统版本；
+- 候选工作流 run ID 与候选提交；
+- 实际安装文件名与 SHA-256；
+- UTC 验收日期；
+- `passed` 或 `failed` 结论；
+- 不含用户数据、凭据或个人路径的持久 HTTPS 证据地址。
 
-`.github/workflows/ci.yml` 会在 push/PR 时执行：
+发布工作流只接受 30 天内、无 userinfo 的 HTTPS 证据，并要求实机记录的 SHA-256 与候选包完全一致。任一平台没有通过，只能保留候选状态。
 
-- 前端测试、前端构建、npm audit。
-- Windows 桌面测试和 Tauri build。
-- macOS 桌面测试和 Tauri Universal build。
+推荐记录结构见 [RELEASE-GATES.md](RELEASE-GATES.md)。
 
-macOS CI/release 会显式安装：
+## 阶段三：正式 Release
 
-- `aarch64-apple-darwin`
-- `x86_64-apple-darwin`
+仓库管理员必须先创建 GitHub Environment `production-release`，配置 required reviewers，并在仓库计划支持时启用 prevent self-review。只有该环境批准后的 `Publish approved release` job 拥有最小 `contents: write`。
 
-并使用：
+管理员手动运行发布工作流，输入：
 
-```bash
-npm run tauri -- build --target universal-apple-darwin
-```
+- 版本、候选 run ID 和候选提交；
+- Windows/macOS 实机安装文件 SHA、验收时间和证据 URL；
+- 上一公共 Release 标签和双平台实际降级证据（首个公共版本固定填 `none`）；
+- `docs/releases/` 下已审阅的版本说明。
 
-## macOS 未正式签名包使用说明
+单一发布 job 将：
 
-因为当前 macOS 包没有 Developer ID 正式签名且未公证，首次打开时 Gatekeeper 可能会阻止启动。本地构建可能带 ad-hoc 签名，但不改变这一限制。小范围测试用户可以使用以下方式打开：
+1. 核对候选工作流、结论和源提交；
+2. 核对 package/Cargo/Tauri/User-Agent 的统一版本；
+3. 下载两个平台候选附件；
+4. 检查精确文件集合、manifest、实机 SHA 与 attestation；
+5. 从公共地址下载上一 Release 的安装包和校验文件并完成校验（首版除外）；
+6. 自动生成包含双平台与回退记录的 `release-gates.json` 和 `SHA256SUMS.txt`；
+7. 使用一条 `gh release create` 命令创建一次正式 Release。
 
-1. 解压下载的 macOS zip。
-2. 将应用移动到 Applications 或任意测试目录。
-3. 右键点击应用，选择 Open。
-4. 在系统提示中再次选择 Open。
+发布工作流不会更新、删除或覆盖已有标签和 Release。已有同名版本时必须失败并停止。
 
-如果系统仍然阻止，可以在 System Settings -> Privacy & Security 中允许打开该应用。
+## 回退规则
 
-## 签名与公证
+`v0.2.1` 是本仓库第一个公共正式版本，因此没有上一公共版本、公共旧安装包或已验证的公共降级路径。不得把本地标签、恢复 bundle 或未公开安装包称为公共回退点。
 
-Unsigned 包可以用于内部测试或小范围分发，但公开分发建议补齐签名与公证：
+从第二个公共正式版本开始，更新 latest 之前必须：
 
-- Windows：代码签名证书，避免 SmartScreen 或未知发布者提示。
-- macOS：Apple Developer ID Application 证书、Team ID、app-specific password，并完成 notarization。
-- CI：将证书、密码和 Team ID 放入 GitHub Secrets，再在 release workflow 中加入签名和公证步骤。
+1. 确认上一正式 Release、安装包与 `SHA256SUMS.txt` 仍可公开下载并校验通过；
+2. 在对应平台从本次候选实际降级安装上一正式版本；
+3. 记录降级后的冷启动和核心功能证据；
+4. 在本次 Release notes 写清实际可回退版本及数据兼容限制。
 
-证书和账号凭据不能由代码仓库生成，需要由项目所有者购买、申请或配置。
+后续新版本完成上述检查后，`v0.2.1` 才能成为真实公共回退点。
 
-## 安装、升级、卸载与回退
+## 签名边界
 
-- 安装和首次打开步骤见根目录 `README.md`。
-- 升级前退出旧版本，再安装同一仓库的新版本包；本机偏好与订阅摘要会保留。
-- 卸载前先在额度助手里关闭开机启动并退出；必要时检查 macOS“系统设置 → 通用 → 登录项”或 Windows“设置 → 应用 → 启动”。普通卸载时，macOS 从“应用程序”删除应用，Windows 从“设置 → 应用 → 已安装的应用”卸载。
-- 彻底清除需在退出应用后分别删除：macOS 配置目录 `~/Library/Application Support/app.quotaassistant.desktop`、macOS WebView 目录 `~/Library/WebKit/app.quotaassistant.desktop`；Windows 配置目录 `%APPDATA%\app.quotaassistant.desktop`、Windows WebView 目录 `%LOCALAPPDATA%\app.quotaassistant.desktop`。配置目录保存偏好与订阅摘要，WebView 目录保存登录会话；两者用途不同，必须分别处理，删除后不可恢复。
-- 回退时重新安装上一版本附件；如果旧版本无法读取新数据，应先备份再清除应用数据。
-- 当前未启用自动更新，不能从上游 Quota Float 或其他仓库混装升级包。
-
-## 跨平台维护原则
-
-- 后续效果调整默认只改共享前端代码。
-- 平台差异只放在桌面壳层，例如托盘、置顶、拖动、点击穿透、开机启动。
-- 不默认启用原生窗口级 Acrylic/Vibrancy；它会作用于整个窗口矩形，不符合只让圆角悬浮球卡片产生毛玻璃效果的设计目标。
-- Codex 登录态读取继续使用 `CODEX_HOME` 或用户目录 `.codex/auth.json`，Windows/macOS 共用同一逻辑。
+当前候选包未配置 macOS Developer ID/notarization 或 Windows Authenticode。证书、账号和私钥必须由项目所有者另行决定并通过受保护环境配置；不得提交到仓库，也不得在普通构建 job 中使用。缺少证书不能跳过其他发布门。

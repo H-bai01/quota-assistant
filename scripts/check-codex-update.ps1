@@ -299,10 +299,6 @@ function Invoke-CodexQuotaProbe {
         "5h",
         "primary"
     ) 18000
-    if (-not $shortWindow) {
-        throw "Quota response is missing a recognizable 5h window."
-    }
-
     $weeklyWindow = Find-Window $rateLimit @(
         "secondary_window",
         "secondaryWindow",
@@ -313,6 +309,9 @@ function Invoke-CodexQuotaProbe {
         "weekly",
         "secondary"
     ) 604800
+    if (-not $weeklyWindow) {
+        throw "Quota response is missing a recognizable weekly window."
+    }
 
     try {
         $creditsResponse = Invoke-WebRequest -Uri $CreditsUrl -Headers $headers -Method Get -TimeoutSec 20
@@ -322,10 +321,10 @@ function Invoke-CodexQuotaProbe {
         Write-Info "reset-credit endpoint probe failed; app can fall back to usage response when available"
     }
 
-    if ($weeklyWindow) {
+    if ($shortWindow) {
         Write-Info "quota probe passed: 5h and weekly windows are recognizable"
     } else {
-        Write-Info "quota probe passed: 5h window is recognizable; weekly window was not present"
+        Write-Info "quota probe passed: weekly window is recognizable; optional 5h window was not present"
     }
 }
 

@@ -29,13 +29,13 @@ powershell -ExecutionPolicy Bypass -File scripts/check-codex-update.ps1 -Force -
 
 ## What It Checks
 
-The automated check does four things:
+The automated check does five things:
 
 1. Detects the installed Codex executable under `%LOCALAPPDATA%\OpenAI\Codex\bin` or `PATH`.
 2. Runs frontend tests: `npm.cmd run test`.
 3. Runs Rust parser tests: `cargo test` inside `src-tauri`.
 4. Runs the production web build: `npm.cmd run build`.
-5. Reads Codex auth without printing tokens, probes the quota endpoints, and verifies that the 5h quota window is recognizable.
+5. Reads Codex auth without printing tokens, probes the quota endpoints, and verifies that the weekly quota window is recognizable. A short window is treated as optional because Codex accounts may no longer expose a 5-hour limit.
 
 The script does not save raw quota responses, tokens, account ids, prompts, or chat history.
 
@@ -44,7 +44,7 @@ The script does not save raw quota responses, tokens, account ids, prompts, or c
 - `Codex auth file was not found`: sign in to Codex Desktop first.
 - `access token was not found`: Codex changed `auth.json` or the login expired.
 - `401` or `403` from the live probe: sign in again; if it persists, Codex auth headers may have changed.
-- `Quota response is missing a recognizable 5h window`: update `src-tauri/src/codex.rs` parsing logic.
+- `Quota response is missing a recognizable weekly window`: update `src-tauri/src/codex.rs` parsing logic.
 - Frontend/Rust/build failures: fix normal project regressions before blaming Codex.
 
 ## Optional Auto-Run
@@ -63,7 +63,7 @@ Use a trigger such as "At log on" or a daily trigger. If Codex changed, the scri
 
 After a full check passes, start the desktop app and confirm:
 
-- A signed-in Codex account shows real 5h quota, weekly quota, and reset time.
+- A signed-in Codex account shows its real weekly quota and reset time. If the service returns a short window, it may also be displayed, but it is not a release requirement.
 - Reset credits show when the service provides them.
 - Signing out of Codex Desktop shows a safe login message, not raw token or response data.
 - Refresh, tray menu, lock/unlock, always-on-top, and drag still work.
