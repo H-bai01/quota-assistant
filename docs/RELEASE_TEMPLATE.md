@@ -18,7 +18,7 @@ Release tier: GitHub community
 
 - 列出本版本统一命名的 Windows EXE 和 macOS DMG。
 - 说明使用 `SHA256SUMS.txt` 验证下载。
-- 社区版必须醒目标明 Gatekeeper/SmartScreen 风险；签名发行版把首行改为 `Release tier: signed distribution` 并附签名/公证证据。
+- 社区版必须醒目标明 Gatekeeper/SmartScreen 风险。签名发行版当前未启用；未来只有在工作流加入 `codesign`、Apple 公证和 Authenticode 的真实验证后，才能使用 `Release tier: signed distribution`。
 
 ## Known limitations
 

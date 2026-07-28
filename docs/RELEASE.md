@@ -7,9 +7,9 @@
 | 等级 | 允许的签名状态 | 必须通过 | 对外表述 |
 | --- | --- | --- | --- |
 | GitHub 开源社区版（`community`） | 允许 `signed: false` | 自动测试、生产构建、依赖与许可证审计、SBOM、attestation、精确附件、SHA-256、对应平台实机门、未签名风险披露 | 可作为 GitHub Release；必须醒目标明未签名/未公证 |
-| 正式签名发行版（`signed`） | 两个平台必须 `signed: true` | 社区版全部门槛，以及 macOS Developer ID + notarization、Windows Authenticode | 只有签名/公证证据完整时才能使用此等级 |
+| 未来正式签名发行版（当前未启用） | 两个平台必须完成真实签名验证 | 社区版全部门槛，以及 macOS Developer ID + notarization、Windows Authenticode 的工具级验证与证据 | 只有验证链完成后才能在工作流中开放此等级 |
 
-缺少签名不再自动阻断 `community`，但缺少风险披露、`SHA256SUMS.txt`、测试、构建、完整附件、平台实机证据或版本一致性仍然阻断。选择 `signed` 时，任一平台清单声明 `signed: false` 必须失败关闭。
+缺少签名不再自动阻断 `community`，但缺少风险披露、`SHA256SUMS.txt`、测试、构建、完整附件、平台实机证据或版本一致性仍然阻断。当前发布工作流只开放 `community`；manifest 中的布尔字段不能代替 `codesign`、Apple 公证或 Authenticode 的真实验证，因此不得选择或宣称签名发行版。
 
 ## 阶段一：生成候选包
 
@@ -52,7 +52,7 @@ Windows 候选包必须在真实 Windows 设备上完成安装、冷启动、核
 
 管理员手动运行发布工作流，输入：
 
-- 版本、发行等级（`community` 或 `signed`）、候选 run ID 和候选提交；
+- 版本、当前唯一可用的 `community` 发行等级、候选 run ID 和候选提交；
 - Windows/macOS 实机安装文件 SHA、验收时间和证据 URL；
 - 上一公共 Release 标签和双平台实际降级证据（首个公共版本固定填 `none`）；
 - `docs/releases/` 下已审阅的版本说明。
@@ -85,5 +85,7 @@ Windows 候选包必须在真实 Windows 设备上完成安装、冷启动、核
 ## 签名与风险披露边界
 
 当前候选包未配置 macOS Developer ID/notarization 或 Windows Authenticode。证书、账号和私钥必须由项目所有者另行决定并通过受保护环境配置；不得提交到仓库，也不得在普通构建 job 中使用。
+
+未来启用签名发行版前，发布工作流必须实际运行并验证 macOS `codesign`、Apple notarization ticket/stapling 和 Windows Authenticode，而不能只信任候选 manifest 的 `signed` 布尔值。
 
 未签名包可以进入 GitHub 开源社区版，但 README 下载区、平台表、安装步骤和 Release notes 必须同时醒目披露 Gatekeeper/SmartScreen 风险，并提供 `SHA256SUMS.txt` 及验证方法。缺少证书不能跳过其他发布门，也不能把社区版描述成已签名发行版。

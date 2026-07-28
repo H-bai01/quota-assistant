@@ -10,7 +10,19 @@
 
 一个本地优先的桌面悬浮工具，在同一张卡片中查看 Codex 与 Claude 的剩余额度、重置时间和订阅续期日期。
 
-![macOS 隔离文档候选展开后的 Codex 与 Claude 双服务总览](docs/assets/macos-expanded-real.png)
+<table>
+  <tr>
+    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="macOS 隔离文档候选展开后的 Codex 与 Claude 双服务总览" width="320"></td>
+    <td>
+      <strong>立即下载（v0.2.2 发布后生效）</strong><br><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
+      <a href="https://github.com/H-bai01/quota-assistant/releases">全部 Releases</a><br><br>
+      <strong>未签名提示：</strong>GitHub 社区版未使用 macOS Developer ID/Apple 公证或 Windows Authenticode。只从本仓库下载并先核验 SHA-256。
+    </td>
+  </tr>
+</table>
 
 ## 立即下载
 
@@ -58,7 +70,7 @@
 - 紧凑悬浮窗、单击展开、拖动、屏幕边缘吸附、置顶和锁定鼠标穿透。
 - 菜单栏/托盘可显示或隐藏窗口、刷新、切换语言、解除锁定和退出。
 
-![macOS 文档候选的真实紧凑悬浮窗](docs/assets/macos-compact-real.png)
+![macOS 文档候选的真实紧凑悬浮窗](docs/assets/macos-compact-real.jpg)
 
 拖动、边缘吸附和托盘菜单的系统级画面仍待形成可公开的脱敏证据；Windows 系统托盘画面必须等真实 Windows 验收，项目不会制作假截图。
 
@@ -174,7 +186,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
 浏览器预览使用明确的演示数据；真实额度读取只能在 Tauri 桌面应用中验证。当前 v0.2.2 候选自测为前端 20 项、Rust 31 项通过；正式 Release notes 必须以最终候选的重新验收数字为准。
 
-贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。安全问题不要放入公开 Issue；私密报告入口见 [SECURITY.md](SECURITY.md)。
+贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。当前尚未配置私密漏洞报告入口；不要在公开 Issue 中提交漏洞细节，最新状态见 [SECURITY.md](SECURITY.md)。
 
 ## 来源、许可、资产与商标
 
@@ -192,4 +204,4 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 - GitHub 社区版未签名；平台安全提示与较高误报概率属于已知限制。
 - 当前没有安全自动更新通道。
 
-完整列表见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。版本历史与候选 Release notes 位于 [docs/releases/](docs/releases/README.md)。普通问题与功能建议使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)；安全问题使用 [SECURITY.md](SECURITY.md) 中确认的私密渠道。
+完整列表见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。版本历史与候选 Release notes 位于 [docs/releases/](docs/releases/README.md)。普通问题与功能建议使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)；当前没有可用的私密漏洞报告渠道，启用前不得把漏洞细节放入公开 Issue，状态见 [SECURITY.md](SECURITY.md)。

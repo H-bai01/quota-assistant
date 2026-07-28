@@ -10,7 +10,19 @@
 
 A local-first floating desktop utility that shows Codex and Claude quota, reset times, and subscription renewal dates in one card.
 
-![Expanded Codex and Claude overview from the isolated macOS documentation candidate](docs/assets/macos-expanded-real.png)
+<table>
+  <tr>
+    <td width="45%"><img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Codex and Claude overview from the isolated macOS documentation candidate" width="320"></td>
+    <td>
+      <strong>Download now (active after v0.2.2 is released)</strong><br><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_macos_universal.dmg">macOS DMG</a> ·
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/quota-assistant_0.2.2_windows_x64-setup.exe">Windows EXE</a><br>
+      <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.2/SHA256SUMS.txt">SHA256SUMS.txt</a> ·
+      <a href="https://github.com/H-bai01/quota-assistant/releases">All Releases</a><br><br>
+      <strong>Unsigned notice:</strong> GitHub Community packages have no macOS Developer ID/Apple notarization or Windows Authenticode. Download only from this repository and verify SHA-256 first.
+    </td>
+  </tr>
+</table>
 
 ## Download now
 
@@ -58,7 +70,7 @@ A local-first floating desktop utility that shows Codex and Claude quota, reset 
 - Compact mode, click-to-expand, drag, edge snap, always-on-top, and click-through lock.
 - The menu bar/system tray can show or hide the widget, refresh, switch language, unlock, and quit.
 
-![Real compact widget from the isolated macOS documentation candidate](docs/assets/macos-compact-real.png)
+![Real compact widget from the isolated macOS documentation candidate](docs/assets/macos-compact-real.jpg)
 
 System-level drag, edge-snap, and tray-menu images still require privacy-safe public evidence. A Windows tray image remains pending real Windows validation; this project will not fabricate one.
 
@@ -174,7 +186,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
 Browser preview uses explicitly labeled sample data. Real quota reads require the Tauri desktop app. The current v0.2.2 candidate self-check passes 20 frontend and 31 Rust tests; final Release notes must use counts from the final candidate rerun.
 
-Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md), the [release process](docs/RELEASE.md), [test matrix](docs/TEST-MATRIX.md), and [public repository boundary](docs/PUBLIC-REPOSITORY-BOUNDARY.md). Do not put vulnerabilities in public Issues; use the confirmed private channel in [SECURITY.md](SECURITY.md).
+Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md), the [release process](docs/RELEASE.md), [test matrix](docs/TEST-MATRIX.md), and [public repository boundary](docs/PUBLIC-REPOSITORY-BOUNDARY.md). No private vulnerability-reporting channel is configured yet; do not put vulnerability details in public Issues, and check [SECURITY.md](SECURITY.md) for current status.
 
 ## Origin, license, assets, and trademarks
 
@@ -192,4 +204,4 @@ This is not an official OpenAI or Anthropic product and is not endorsed by them.
 - The GitHub Community tier is unsigned; platform warnings and higher false-positive rates are known limitations.
 - No secure automatic update channel is enabled.
 
-See [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md) for the full list. Version history and candidate notes live under [docs/releases/](docs/releases/README.md). Use [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues) for ordinary bugs and feature requests; use the confirmed private channel in [SECURITY.md](SECURITY.md) for vulnerabilities.
+See [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md) for the full list. Version history and candidate notes live under [docs/releases/](docs/releases/README.md). Use [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues) for ordinary bugs and feature requests. No private vulnerability-reporting channel is currently available; do not disclose vulnerability details in a public Issue, and check [SECURITY.md](SECURITY.md) for current status.

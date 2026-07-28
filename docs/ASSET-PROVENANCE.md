@@ -24,12 +24,12 @@
 
 ## README 界面资料
 
-以下资料于 2026-07-28 从 v0.2.2 隔离文档候选生成。`macos-*-real.png` 由真实 Tauri macOS 候选窗口采集；其余图片由同一候选前端在浏览器预览模式下使用源码内明确的演示数据渲染。采集前未调用正式账号、登录窗口或真实诊断，图片不包含邮箱、账号、Cookie、令牌、个人路径或用户订阅数据。
+以下资料于 2026-07-28 从 v0.2.2 隔离文档候选生成。`macos-*-real.jpg` 由真实 Tauri macOS 候选窗口采集；其余图片由同一候选前端在浏览器预览模式下使用源码内明确的演示数据渲染。采集前未调用正式账号、登录窗口或真实诊断，图片不包含邮箱、账号、Cookie、令牌、个人路径或用户订阅数据。
 
 | 文件 | SHA-256 | 来源与生成方式 | 用途 | 权利状态 |
 |---|---|---|---|---|
-| `docs/assets/macos-compact-real.png` | `bc9dc2d365e4b2f8ee586e888a3b4986df573b76cc72a7d3c9ff50a1a12cdcdf` | 隔离标识 `app.quotaassistant.docs` 的本地 v0.2.2 Tauri 文档候选，使用演示数据 | README 紧凑悬浮窗 | 项目自有界面截图，MIT |
-| `docs/assets/macos-expanded-real.png` | `963f630964d7496ee96f954aad083cdd24a5566452cf626f40609c1b70be001f` | 同一隔离 Tauri 文档候选展开后的真实窗口 | README 主图 | 项目自有界面截图，MIT |
+| `docs/assets/macos-compact-real.jpg` | `bc9dc2d365e4b2f8ee586e888a3b4986df573b76cc72a7d3c9ff50a1a12cdcdf` | 隔离标识 `app.quotaassistant.docs` 的本地 v0.2.2 Tauri 文档候选，使用演示数据 | README 紧凑悬浮窗 | 项目自有界面截图，MIT |
+| `docs/assets/macos-expanded-real.jpg` | `963f630964d7496ee96f954aad083cdd24a5566452cf626f40609c1b70be001f` | 同一隔离 Tauri 文档候选展开后的真实窗口 | README 主图 | 项目自有界面截图，MIT |
 | `docs/assets/macos-install-dmg.jpg` | `c1e0a0c557836741bd469794e73c415bd8ff5d667bed0a697704d1cb809dfdae` | 本地 v0.2.2 Universal DMG 在真实 macOS Finder 中打开后的安装窗口 | README macOS 安装说明 | 项目自有安装包界面截图，MIT |
 | `docs/assets/quota-renewal.jpg` | `778071a41a4e0d277f3d00c50e2d63ba2a28d2bdaf8719c53d8a202937d5e44d` | v0.2.2 前端预览，使用源码内演示额度与续期数据 | 双服务额度、重置和续期细节 | 项目自有界面截图，MIT |
 | `docs/assets/claude-connect.jpg` | `fcc565083811434fd7fbf704877d2ff1a02f0019b3d3bedc911597f961b259ce` | v0.2.2 前端 `claude-connect` 演示状态 | Claude 首次连接入口 | 项目自有界面截图，MIT |

@@ -58,6 +58,9 @@ if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish fr
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify both installed-package evidence records");
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
+if (!/options:\s*\n\s*- community(?:\s*\n\s*[a-zA-Z_]|\s*\n\s*$)/m.test(release) || /^\s*- signed\s*$/m.test(release)) {
+  fail("release.yml must expose only the enabled community tier until platform signature verification exists");
+}
 for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "windows_rollback_evidence_url", "macos_rollback_evidence_url"]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
 }
@@ -161,13 +164,22 @@ for (const readmeName of readmes) {
   if (!/未签名|unsigned/i.test(content) || !/Gatekeeper/.test(content) || !/SmartScreen/.test(content)) {
     fail(`${readmeName}: unsigned Gatekeeper and SmartScreen risks must be prominent and explicit`);
   }
-  const localImages = [...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)]
-    .map((match) => match[1])
-    .filter((target) => !/^https?:\/\//.test(target));
+  const localImages = [...new Set([
+    ...[...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((match) => match[1]),
+    ...[...content.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map((match) => match[1]),
+  ].filter((target) => !/^https?:\/\//.test(target)))];
   for (const target of localImages) {
     const imagePath = path.resolve(root, target);
     if (!imagePath.startsWith(`${root}${path.sep}`) || !fs.existsSync(imagePath) || !fs.statSync(imagePath).isFile()) {
       fail(`${readmeName}: broken or unsafe local image link ${target}`);
+      continue;
+    }
+    const signature = fs.readFileSync(imagePath).subarray(0, 8);
+    if (/\.png$/i.test(target) && !signature.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+      fail(`${readmeName}: .png image has a different binary format: ${target}`);
+    }
+    if (/\.jpe?g$/i.test(target) && !(signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff)) {
+      fail(`${readmeName}: .jpg image has a different binary format: ${target}`);
     }
   }
 }

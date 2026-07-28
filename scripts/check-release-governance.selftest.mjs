@@ -69,7 +69,13 @@ try {
     await fs.writeFile(file, text.replace("ubuntu-24.04", "ubuntu-latest"));
   }, /runner labels must be versioned/);
 
-  console.log("Release governance adversarial tests passed (7/7).");
+  await expectRejected("unverified-signed-tier", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace("          - community", "          - community\n          - signed"));
+  }, /only the enabled community tier/);
+
+  console.log("Release governance adversarial tests passed (8/8).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

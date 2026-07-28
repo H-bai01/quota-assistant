@@ -8,13 +8,12 @@ on:
         required: true
         type: string
       release_tier:
-        description: GitHub community permits disclosed unsigned packages; signed distribution requires platform signatures
+        description: Only the disclosed unsigned GitHub community tier is enabled; signed distribution remains disabled
         required: true
         default: community
         type: choice
         options:
           - community
-          - signed
       candidate_run_id:
         description: Successful Candidate workflow run ID
         required: true

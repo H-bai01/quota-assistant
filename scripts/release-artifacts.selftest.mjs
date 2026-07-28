@@ -127,7 +127,14 @@ try {
   ], { cwd: root, encoding: "utf8" });
   assert.equal(request.status, 0, request.stderr);
 
-  console.log("Release artifact tests passed (community unsigned, signed-tier rejection/success, mismatch, unknown-file, immutable request). ");
+  const draftNotesRequest = spawnSync(process.execPath, [
+    "scripts/validate-release-request.mjs", "--version", packageVersion, "--commit", head,
+    "--release-tier", "community", "--notes", `docs/releases/v${packageVersion}.md`,
+  ], { cwd: root, encoding: "utf8" });
+  assert.notEqual(draftNotesRequest.status, 0, "Candidate notes with placeholders unexpectedly passed");
+  assert.match(draftNotesRequest.stderr, /candidate-only text|pending state|traceability placeholders/i);
+
+  console.log("Release artifact tests passed (community unsigned, signed-tier rejection/success, mismatch, unknown-file, immutable request, draft-notes rejection). ");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
