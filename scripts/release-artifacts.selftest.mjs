@@ -16,6 +16,26 @@ const version = "0.2.2";
 const commit = "a28df7a21a5a84429db81d0770f0cf16f78dc95b";
 const releaseCommit = "b".repeat(40);
 const sha256 = (data) => crypto.createHash("sha256").update(data).digest("hex");
+
+async function expectReleaseRequestRejected(name, mutate, expected, includeNotes = false) {
+  const scenario = path.join(temporaryRoot, name);
+  spawnSync("git", ["clone", "-q", "--shared", root, scenario]);
+  spawnSync("git", ["config", "user.name", "Release Self-test"], { cwd: scenario });
+  spawnSync("git", ["config", "user.email", "release-selftest@example.invalid"], { cwd: scenario });
+  await mutate(scenario);
+  spawnSync("git", ["add", "-A"], { cwd: scenario });
+  spawnSync("git", ["commit", "-qm", `synthetic ${name}`], { cwd: scenario });
+  const scenarioHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: scenario, encoding: "utf8" }).stdout.trim();
+  const args = [
+    "scripts/validate-release-request.mjs", "--version", "0.2.2", "--commit", scenarioHead,
+    "--candidate-commit", commit, "--release-tier", "community",
+  ];
+  if (includeNotes) args.push("--notes", "docs/releases/v0.2.2.md");
+  const result = spawnSync(process.execPath, args, { cwd: scenario, encoding: "utf8" });
+  assert.notEqual(result.status, 0, `${name} unexpectedly passed`);
+  assert.match(`${result.stdout}\n${result.stderr}`, expected, `${name} failed for the wrong reason`);
+}
+
 const records = {
   windows: {
     package: `quota-assistant_${version}_windows_x64-setup.exe`,
@@ -231,7 +251,49 @@ try {
   assert.notEqual(nonAncestor.status, 0, "Non-ancestor release commit unexpectedly passed");
   assert.match(nonAncestor.stderr, /must be an ancestor/i);
 
-  console.log("Release artifact tests passed (Windows preview record, community unsigned, forged-signature rejection, mismatch, unknown-file, restricted dual-commit request, final-notes acceptance, injected-draft, non-allowlist, wrong-Candidate, and non-ancestor rejection).");
+  await expectReleaseRequestRejected("validator-readme-zh-comment-hidden", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("尚未完成 Windows 实机 GUI 验收", "<!-- 尚未完成 Windows 实机 GUI 验收 -->"));
+  }, /must disclose the exact v0\.2\.2 Windows preview status/);
+
+  await expectReleaseRequestRejected("validator-readme-en-comment-hidden", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("has not completed real Windows GUI validation", "<!-- has not completed real Windows GUI validation -->"));
+  }, /must disclose the exact v0\.2\.2 Windows preview status/);
+
+  await expectReleaseRequestRejected("validator-notes-comment-hidden", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("has not completed real Windows GUI validation", "<!-- has not completed real Windows GUI validation -->"));
+  }, /missing required Windows preview disclosure/, true);
+
+  await expectReleaseRequestRejected("validator-readme-zh-contradiction", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.md"), "\nWindows GUI 已通过实机验收，属于正式支持。\n");
+  }, /contradictory claim/);
+
+  await expectReleaseRequestRejected("validator-readme-en-contradiction", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.en.md"), "\nWindows installation and tray have been validated and are formally supported.\n");
+  }, /contradictory claim/);
+
+  await expectReleaseRequestRejected("validator-notes-contradiction", async (directory) => {
+    await fs.appendFile(path.join(directory, "docs/releases/v0.2.2.md"), "\nWindows downgrade has been validated and is formally supported.\n");
+  }, /contradictory claim/, true);
+
+  await expectReleaseRequestRejected("validator-notes-unclosed-comment", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `<!--\n${text}`);
+  }, /unclosed HTML comment/, true);
+
+  await expectReleaseRequestRejected("validator-notes-stray-comment-close", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `-->\n${text}`);
+  }, /comment close has no matching open/, true);
+
+  console.log("Release artifact tests passed (Windows preview record, restricted dual-commit gates, visible-content parsing, contradictory-claim rejection, and existing artifact integrity checks).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

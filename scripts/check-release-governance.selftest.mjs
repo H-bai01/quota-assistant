@@ -113,6 +113,48 @@ try {
     await fs.appendFile(file, "\n# windows_evidence_url\n");
   }, /must not accept false Windows validation evidence/);
 
+  await expectRejected("readme-zh-preview-hidden-in-comment", async (directory) => {
+    const file = path.join(directory, "README.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("尚未完成 Windows 实机 GUI 验收", "<!-- 尚未完成 Windows 实机 GUI 验收 -->"));
+  }, /missing Windows preview disclosure/);
+
+  await expectRejected("readme-en-preview-hidden-in-comment", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("has not completed real Windows GUI validation", "<!-- has not completed real Windows GUI validation -->"));
+  }, /missing Windows preview disclosure/);
+
+  await expectRejected("release-notes-preview-hidden-in-comment", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replaceAll("has not completed real Windows GUI validation", "<!-- has not completed real Windows GUI validation -->"));
+  }, /release notes are missing Windows preview disclosure/);
+
+  await expectRejected("readme-zh-contradictory-windows-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.md"), "\nWindows GUI 已通过实机验收，属于正式支持。\n");
+  }, /contradictory claim/);
+
+  await expectRejected("readme-en-contradictory-windows-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "README.en.md"), "\nWindows installation and tray have been validated and are formally supported.\n");
+  }, /contradictory claim/);
+
+  await expectRejected("release-notes-contradictory-windows-claim", async (directory) => {
+    await fs.appendFile(path.join(directory, "docs/releases/v0.2.2.md"), "\nWindows downgrade has been validated and is formally supported.\n");
+  }, /contradictory claim/);
+
+  await expectRejected("release-notes-unclosed-comment", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `<!--\n${text}`);
+  }, /unclosed HTML comment/);
+
+  await expectRejected("release-notes-stray-comment-close", async (directory) => {
+    const file = path.join(directory, "docs/releases/v0.2.2.md");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, `-->\n${text}`);
+  }, /comment close has no matching open/);
+
   await expectRejected("readme-centered-title", async (directory) => {
     const file = path.join(directory, "README.md");
     const text = await fs.readFile(file, "utf8");
@@ -184,7 +226,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (24/24).");
+  console.log("Release governance adversarial tests passed (32/32).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

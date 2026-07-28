@@ -12,6 +12,43 @@ function fail(message) {
   process.exit(1);
 }
 
+function visibleHtmlWithoutComments(file, text) {
+  let cursor = 0;
+  let visible = "";
+  while (cursor < text.length) {
+    const open = text.indexOf("<!--", cursor);
+    const strayClose = text.indexOf("-->", cursor);
+    if (strayClose !== -1 && (open === -1 || strayClose < open)) {
+      fail(`${file}: HTML comment close has no matching open`);
+    }
+    if (open === -1) return visible + text.slice(cursor);
+    visible += text.slice(cursor, open);
+    const close = text.indexOf("-->", open + 4);
+    if (close === -1) fail(`${file}: unclosed HTML comment`);
+    cursor = close + 3;
+  }
+  return visible;
+}
+
+function rejectContradictoryWindowsClaims(file, text) {
+  const behaviors = /\bGUI\b|安装|冷启动|紧凑|展开|托盘|拖动|置顶|锁定|解锁|双语|语言|诊断|退出|卸载|降级|installation|cold start|compact|expanded|tray|drag|always-on-top|lock|unlock|languages?|diagnostics?|quit|uninstall|downgrade/i;
+  const windows = /Windows/i;
+  const affirmations = /已(?:经)?(?:完成|通过|验证|验收)|(?:验证|验收)(?:已)?通过|正式支持|通过(?:了)?实机验收|(?:has|have|is|are)\s+(?:been\s+)?(?:fully\s+)?(?:validated|verified|tested(?:\s+and\s+passed)?|completed|formally\s+supported)|(?:GUI|installation|real[- ]device)\s+(?:validation\s+)?(?:passed|completed)|formally\s+supported/gi;
+  const negativeBefore = /未|尚未|不(?:得|能|应|可|会|是)?|没有|无|缺少|仍缺|\b(?:not|no|without|never|must\s+not|has\s+not|have\s+not|isn't|aren't|lacks?|unvalidated)\b/i;
+  for (const segment of text.split(/\r?\n|[\u3002！？；;|]/)) {
+    if (!windows.test(segment) || !behaviors.test(segment)) continue;
+    affirmations.lastIndex = 0;
+    for (let match = affirmations.exec(segment); match; match = affirmations.exec(segment)) {
+      const prefix = segment.slice(Math.max(0, match.index - 32), match.index);
+      if (negativeBefore.test(prefix)) continue;
+      const localEvidence = segment.slice(Math.max(0, match.index - 16), match.index + match[0].length + 36);
+      if (/(?:自动构建|manifest|SBOM|SHA-?256|attestation|automated build)/i.test(localEvidence)
+        && !behaviors.test(localEvidence)) continue;
+      fail(`${file}: contradictory claim says Windows preview behavior is validated or formally supported`);
+    }
+  }
+}
+
 const version = argument("version");
 const commit = argument("commit");
 const candidateCommit = argument("candidate-commit");
@@ -62,15 +99,17 @@ if (releaseTier) {
   for (const [readme, markers] of Object.entries(readmeDraftMarkers)) {
     if (!fs.existsSync(readme)) fail(`Missing ${readme}`);
     const content = fs.readFileSync(readme, "utf8");
-    if (markers.some((pattern) => pattern.test(content))) {
+    const visibleContent = visibleHtmlWithoutComments(readme, content);
+    if (markers.some((pattern) => pattern.test(visibleContent))) {
       fail(`${readme} still contains candidate or not-yet-released wording`);
     }
     const previewRequirements = readme === "README.md"
       ? ["Windows 预览版", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持", windowsPreviewCandidate]
       : ["Windows preview", "has not completed real Windows GUI validation", "not listed as validated support", windowsPreviewCandidate];
-    if (previewRequirements.some((required) => !content.includes(required))) {
+    if (previewRequirements.some((required) => !visibleContent.includes(required))) {
       fail(`${readme} must disclose the exact v0.2.2 Windows preview status and binary source commit`);
     }
+    rejectContradictoryWindowsClaims(readme, visibleContent);
   }
 }
 
@@ -83,6 +122,7 @@ if (notes) {
   const realNotes = fs.realpathSync(notes);
   if (!realNotes.startsWith(`${realRoot}${path.sep}`)) fail("Release notes resolved outside docs/releases/");
   const content = fs.readFileSync(realNotes, "utf8");
+  const visibleContent = visibleHtmlWithoutComments(notes, content);
   const draftMarkers = [
     /<final 40-character candidate SHA>/i,
     /<candidate run ID>/i,
@@ -90,25 +130,25 @@ if (notes) {
     /本文件是未发布候选说明/,
     /不得用于创建正式 Release/,
   ];
-  if (draftMarkers.some((pattern) => pattern.test(content))) {
+  if (draftMarkers.some((pattern) => pattern.test(visibleContent))) {
     fail("Release notes still contain candidate-only text, pending state, or traceability placeholders");
   }
-  if (!content.includes(`# 额度助手 v${version}`)) fail("Release notes title must match the requested version");
+  if (!visibleContent.includes(`# 额度助手 v${version}`)) fail("Release notes title must match the requested version");
   for (const asset of [
     `quota-assistant_${version}_windows_x64-setup.exe`,
     `quota-assistant_${version}_macos_universal.dmg`,
   ]) {
-    if (!content.includes(asset)) fail(`Release notes are missing planned asset: ${asset}`);
+    if (!visibleContent.includes(asset)) fail(`Release notes are missing planned asset: ${asset}`);
   }
   const requiredHeadings = ["Changes", "Supported platforms", "Installation", "Known limitations", "Upgrade and rollback"];
   for (const heading of requiredHeadings) {
-    if (!content.includes(`## ${heading}`)) fail(`Release notes are missing required heading: ## ${heading}`);
+    if (!visibleContent.includes(`## ${heading}`)) fail(`Release notes are missing required heading: ## ${heading}`);
   }
-  if (!content.includes("SHA256SUMS.txt") || !/SHA-?256/i.test(content)) {
+  if (!visibleContent.includes("SHA256SUMS.txt") || !/SHA-?256/i.test(visibleContent)) {
     fail("Release notes must explain SHA-256 verification with SHA256SUMS.txt");
   }
   if (releaseTier === "community") {
-    if (!content.includes("Release tier: GitHub community") || !/unsigned|未签名/i.test(content)) {
+    if (!visibleContent.includes("Release tier: GitHub community") || !/unsigned|未签名/i.test(visibleContent)) {
       fail("GitHub community release notes must prominently disclose unsigned packages");
     }
   }
@@ -118,8 +158,9 @@ if (notes) {
     "preview-unvalidated",
     "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
   ]) {
-    if (!content.includes(required)) fail(`Release notes are missing required Windows preview disclosure: ${required}`);
+    if (!visibleContent.includes(required)) fail(`Release notes are missing required Windows preview disclosure: ${required}`);
   }
+  rejectContradictoryWindowsClaims(notes, visibleContent);
 }
 
 console.log(`Release request validated for v${version}: release ${commit}, binary Candidate ${candidateCommit}.`);
