@@ -48,7 +48,7 @@
 
 ## 阶段三：正式 Release
 
-仓库管理员必须先创建 GitHub Environment `production-release`，配置 required reviewers，并在仓库计划支持时启用 prevent self-review。只有该环境批准后的 `Publish approved release` job 拥有最小 `contents: write`。
+仓库管理员必须先创建 GitHub Environment `production-release`。取得用户对本次正式发布的明确授权并完成独立监督复核后，管理员才能手动触发 `Publish approved release`；只有使用该环境的发布 job 拥有最小 `contents: write`。个人仓库不强制配置 GitHub required reviewers，避免在已经完成授权与监督复核后重复审批。
 
 管理员手动运行发布工作流，输入：
 

@@ -4,7 +4,6 @@
 
 - [ ] GitHub Actions 已启用。
 - [ ] 建立 `production-release` Environment。
-- [ ] 配置 required reviewers；计划支持时启用 prevent self-review。
 - [ ] Environment 不向候选构建提供签名秘密。
 - [ ] 默认 `GITHUB_TOKEN` 权限保持只读，只有发布 job 显式申请 `contents: write`。
 - [ ] 分支保护要求 `CI` 全部通过。
@@ -43,8 +42,8 @@
 
 ## 正式发布
 
+- [ ] 已取得用户对本次正式发布的明确授权，并完成独立监督复核。
 - [ ] 手动运行 `Publish approved release`，完整输入候选、Windows Beta 确认和 macOS 实机证据。
-- [ ] `production-release` 独立审批人复核后批准。
 - [ ] 发布 job 核对候选 run、提交、版本、manifest、SHA、SBOM 和 attestation。
 - [ ] 最终发布提交是 Candidate 的后代，差异仅包含明确 allowlist 中的发布说明与治理文件。
 - [ ] 工作流自动生成 `release-gates.json` 与 `SHA256SUMS.txt`。
