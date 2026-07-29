@@ -245,13 +245,15 @@ button { font: inherit; }
   --surface-radius: 58px;
   min-width: 480px;
   min-height: 480px;
-  padding: 30px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px;
   border-radius: var(--surface-radius);
   animation: panel-in .16s ease-out both;
 }
 
 .overview-header {
-  min-height: 46px;
+  min-height: 42px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -287,7 +289,12 @@ button { font: inherit; }
 .overview-actions button svg { width: 17px; height: 17px; }
 .overview-actions .language-button { width: 44px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
 
-.service-panels { display: grid; gap: 14px; }
+.service-panels {
+  flex: 1;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 .service-panel {
   position: relative;
   min-height: 143px;
