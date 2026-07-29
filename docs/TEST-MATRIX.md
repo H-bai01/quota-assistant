@@ -45,7 +45,7 @@
 - `candidate`：两个平台候选包、SBOM、manifest 和 attestation 已生成。
 - `platform-validated`：对应平台安装文件已在真实设备上通过且 SHA 匹配。
 - `beta-unvalidated`：安装附件通过自动构建、manifest、SBOM、SHA-256 和 attestation，但没有对应平台实机 GUI 结论；不得等同于 `platform-validated` 或“正式支持”。
-- `release-ready`：所有被声明为已验证支持的平台都是 `platform-validated`；Windows Beta 完整披露 `beta-unvalidated`，发布说明已审阅，人工批准环境已放行。
+- `release-ready`：所有被声明为已验证支持的平台都是 `platform-validated`；Windows Beta 完整披露 `beta-unvalidated`，发布说明已审阅，并已取得用户明确授权、完成独立监督复核后手动触发发布。
 - `released`：单一发布 job 成功创建标签和 GitHub Release，并完成公开下载复验。
 
 未达到 `platform-validated` 时，不得在 README、Release notes 或报告中声称该平台“已正式支持”。
