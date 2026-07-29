@@ -17,7 +17,8 @@
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="额度与订阅总览" width="320">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="额度与订阅总览" width="320"><br>
+  <strong>额度与订阅总览</strong>
 </p>
 
 <p align="center">

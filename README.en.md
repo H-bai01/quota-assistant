@@ -17,7 +17,8 @@
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="Quota and subscription overview" width="320">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="Quota and subscription overview" width="320"><br>
+  <strong>Quota and subscription overview</strong>
 </p>
 
 <p align="center">
