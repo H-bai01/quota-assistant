@@ -16,9 +16,18 @@
 <p align="center"><strong>See AI quota, reset times, and subscription cycles in one floating widget.</strong></p>
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
-<p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Quota Assistant widget" width="488">
-</p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/assets/macos-compact-real.jpg" alt="Compact Quota Assistant widget" height="176"></td>
+    <td align="center"><img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Quota Assistant widget" height="176"></td>
+    <td align="center"><img src="docs/assets/diagnostics.jpg" alt="Quota Assistant environment diagnostics" height="176"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Compact widget</strong></td>
+    <td align="center"><strong>Quota and subscription overview</strong></td>
+    <td align="center"><strong>On-demand diagnostics</strong></td>
+  </tr>
+</table>
 
 <p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">Download for macOS</a></strong>

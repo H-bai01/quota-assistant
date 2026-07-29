@@ -16,9 +16,18 @@
 <p align="center"><strong>在一个悬浮窗里看清 AI 工具额度、重置时间和订阅周期。</strong></p>
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
-<p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" width="488">
-</p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/assets/macos-compact-real.jpg" alt="额度助手紧凑悬浮窗" height="176"></td>
+    <td align="center"><img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" height="176"></td>
+    <td align="center"><img src="docs/assets/diagnostics.jpg" alt="额度助手环境诊断" height="176"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>紧凑悬浮窗</strong></td>
+    <td align="center"><strong>额度与订阅总览</strong></td>
+    <td align="center"><strong>按需环境诊断</strong></td>
+  </tr>
+</table>
 
 <p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">下载 macOS 版</a></strong>

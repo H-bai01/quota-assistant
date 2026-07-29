@@ -39,6 +39,6 @@
 | `docs/assets/macos-install-dmg.jpg` | `471e4e886762526af45b2dbe68d977145e8e38305cbfc8db30549bc8eea1bcef` | 本地 v0.2.2 Universal DMG 在真实 macOS Finder 中打开后的安装窗口；本轮仅清除元数据 | README macOS 安装说明 | 项目自有安装包界面截图，MIT |
 | `docs/assets/quota-renewal.jpg` | `3c297f9d818123e29cbc9e0d87deb1aba1835424314910defc7840bba35b75b6` | v0.2.2 同源前端文档模式，使用源码内演示额度与续期数据 | 双服务额度、重置和续期细节 | 项目界面截图；其中服务标识权利状态见上表 |
 | `docs/assets/claude-connect.jpg` | `594c4610b2f9a84397f7d30968f597c10cb3e763a823fb239f52727c8a191281` | v0.2.2 同源前端 `claude-connect` 演示状态 | Claude 首次连接入口 | 项目界面截图；其中服务标识权利状态见上表 |
-| `docs/assets/diagnostics.jpg` | `6f8e0dfe1bec4ac85f1ff95597389f93b65ed06df4fb015a5a4b710bf832aede` | v0.2.2 前端脱敏诊断演示状态；本轮仅清除元数据 | README 诊断说明 | 项目自有界面截图，MIT |
+| `docs/assets/diagnostics.jpg` | `b93ebd1f093e3f28ebf784d8e4e9d99d5b3daafd7914144c9766cb1ccfd7b62d` | 2026-07-29 从正式安装的 v0.2.4 macOS 应用直接采集；通过仅作用于该进程的隔离网络失败场景，由用户同意入口打开真实最小诊断；不含账号身份、凭据或个人路径；公开前已移除 EXIF | README 按需环境诊断 | 项目自有界面截图，MIT |
 
 系统托盘、Gatekeeper 和 Windows SmartScreen 资料只有在能够取得对应真实系统画面且完成隐私复核后才允许加入；不得用设计稿或其他平台画面冒充实机证据。
