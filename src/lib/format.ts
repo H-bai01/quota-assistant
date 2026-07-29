@@ -47,6 +47,23 @@ export function formatResetDate(value: string | null, language: Language = "zh-C
   return new Intl.DateTimeFormat(language === "en" ? "en-US" : "zh-CN", { month: "numeric", day: "numeric" }).format(date);
 }
 
+export function formatRenewalDate(value: string | null, language: Language = "zh-CN"): string {
+  const t = copy[normalizeLanguage(language)];
+  if (!value) return t.dateUnknown;
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const date = isoDate
+    ? new Date(Date.UTC(Number(isoDate[1]), Number(isoDate[2]) - 1, Number(isoDate[3])))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return t.dateUnknown;
+  if (language !== "en") return formatResetDate(value, language);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: isoDate ? "UTC" : undefined,
+  }).format(date);
+}
+
 export function formatDateTime(value: string, language: Language): string {
   const t = copy[normalizeLanguage(language)];
   const date = new Date(value);

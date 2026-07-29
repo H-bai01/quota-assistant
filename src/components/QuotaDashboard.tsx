@@ -2,7 +2,7 @@ import { ArrowClockwise, CalendarCheck, LockSimple, PushPin, PushPinSlash, Squar
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import claudeIcon from "../../claude.png";
 import codexIcon from "../../Codex.png";
-import { clampPercent, formatDateTime, formatResetDate, formatResetTime } from "../lib/format";
+import { clampPercent, formatDateTime, formatRenewalDate, formatResetDate, formatResetTime } from "../lib/format";
 import type { Language, ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
 interface DashboardProps {
@@ -148,13 +148,17 @@ function Detail({ label, primary, secondary }: { label: string; primary: string;
 
 function SubscriptionDetail({ subscription, language, onLogin }: { subscription?: SubscriptionSnapshot; language: Language; onLogin: () => void }) {
   const t = labels[language];
-  const hasKnownRenewal = Boolean(subscription?.renewalLabel || subscription?.renewsAt);
+  const hasKnownRenewal = language === "en"
+    ? Boolean(subscription?.renewsAt)
+    : Boolean(subscription?.renewalLabel || subscription?.renewsAt);
   const loginRequired = subscription?.status === "needs_service_login" || subscription?.status === "needs_billing_login";
   const renewalDue = subscription?.remainingDays == null || subscription.remainingDays <= 1;
   const needsLogin = loginRequired && (!hasKnownRenewal || renewalDue);
   const cycle = subscription?.cycle === "monthly" ? t.cycleMonthly : subscription?.cycle === "yearly" ? t.cycleYearly : t.cycleUnknown;
   const primary = hasKnownRenewal
-    ? subscription?.renewalLabel ?? (subscription?.renewsAt ? formatResetDate(subscription.renewsAt, language) : t.unavailable)
+    ? language === "en"
+      ? formatRenewalDate(subscription?.renewsAt ?? null, language)
+      : subscription?.renewalLabel ?? (subscription?.renewsAt ? formatResetDate(subscription.renewsAt, language) : t.unavailable)
     : subscription?.status === "loading" ? t.subscriptionLoading : t.unavailable;
   const secondary = hasKnownRenewal && subscription?.remainingDays != null
     ? `${cycle} · ${t.remaining(subscription.remainingDays)}`

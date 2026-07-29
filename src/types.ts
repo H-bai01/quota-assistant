@@ -43,11 +43,11 @@ export interface SubscriptionLoginEnded {
   outcome: "success" | "cancelled" | "failed";
 }
 
-export interface EnvironmentStatus {
-  codexInstalled: boolean;
-  codexCredentialsFound: boolean;
-  claudeInstalled: boolean;
-  claudeCredentialsFound: boolean;
+export type DiagnosticErrorCategory = "signed_out" | "unavailable" | "subscription_unavailable";
+
+export interface DiagnosticTarget {
+  provider: ProviderId;
+  errorCategory: DiagnosticErrorCategory;
 }
 
 export interface DiagnosticsReport {

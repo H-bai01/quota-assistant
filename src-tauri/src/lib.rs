@@ -27,8 +27,8 @@ use tauri::{
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_window_state::Builder as WindowStateBuilder;
 
-const COLLAPSED_LOGICAL_WIDTH: f64 = 112.0;
-const COLLAPSED_LOGICAL_HEIGHT: f64 = 80.0;
+const COLLAPSED_LOGICAL_WIDTH: f64 = 96.0;
+const COLLAPSED_LOGICAL_HEIGHT: f64 = 64.0;
 const EXPANDED_LOGICAL_SIZE: f64 = 480.0;
 const EDGE_SAFE_INSET_LOGICAL: f64 = 4.0;
 const SNAP_THRESHOLD_LOGICAL: f64 = 8.0;
@@ -272,12 +272,26 @@ fn clamp_position_to_monitor(
     monitor: &tauri::Monitor,
     safe_inset: i32,
 ) -> PhysicalPosition<i32> {
-    let monitor_position = monitor.position();
-    let monitor_size = monitor.size();
-    let left = monitor_position.x;
-    let top = monitor_position.y;
-    let right = left + monitor_size.width as i32;
-    let bottom = top + monitor_size.height as i32;
+    clamp_position_to_bounds(
+        position,
+        size,
+        *monitor.position(),
+        *monitor.size(),
+        safe_inset,
+    )
+}
+
+fn clamp_position_to_bounds(
+    position: PhysicalPosition<i32>,
+    size: PhysicalSize<u32>,
+    bounds_position: PhysicalPosition<i32>,
+    bounds_size: PhysicalSize<u32>,
+    safe_inset: i32,
+) -> PhysicalPosition<i32> {
+    let left = bounds_position.x;
+    let top = bounds_position.y;
+    let right = left + bounds_size.width as i32;
+    let bottom = top + bounds_size.height as i32;
     PhysicalPosition::new(
         position
             .x
@@ -285,6 +299,19 @@ fn clamp_position_to_monitor(
         position
             .y
             .clamp(top - safe_inset, bottom - size.height as i32 + safe_inset),
+    )
+}
+
+fn settle_collapsed_drag_in_bounds(
+    position: PhysicalPosition<i32>,
+    size: PhysicalSize<u32>,
+    bounds_position: PhysicalPosition<i32>,
+    bounds_size: PhysicalSize<u32>,
+    safe_inset: i32,
+) -> (PhysicalPosition<i32>, DockState) {
+    (
+        clamp_position_to_bounds(position, size, bounds_position, bounds_size, safe_inset),
+        DockState::default(),
     )
 }
 
@@ -439,7 +466,6 @@ fn collapsed_geometry_for_expand(
     current_position: PhysicalPosition<i32>,
     collapsed_size: PhysicalSize<u32>,
     monitor: &tauri::Monitor,
-    threshold: i32,
     safe_inset: i32,
     previous: Option<WidgetGeometryState>,
 ) -> (WidgetRect, DockState) {
@@ -477,31 +503,7 @@ fn collapsed_geometry_for_expand(
         position: clamp_position_to_monitor(current_position, collapsed_size, monitor, safe_inset),
         size: collapsed_size,
     };
-    let dock = detect_dock(
-        current_collapsed.position,
-        collapsed_size,
-        monitor,
-        threshold,
-        safe_inset,
-    );
-    let position = if dock.is_docked() {
-        snap_position(
-            current_collapsed.position,
-            collapsed_size,
-            dock,
-            monitor,
-            safe_inset,
-        )
-    } else {
-        current_collapsed.position
-    };
-    (
-        WidgetRect {
-            position,
-            size: collapsed_size,
-        },
-        dock,
-    )
+    (current_collapsed, DockState::default())
 }
 
 fn current_widget_rect(window: &tauri::WebviewWindow) -> Result<WidgetRect, String> {
@@ -568,13 +570,11 @@ fn expand_widget(
             .map_err(|_| "failed to resize widget".to_string())?;
         return Ok(());
     };
-    let threshold = logical_to_physical(SNAP_THRESHOLD_LOGICAL, scale_factor) as i32;
     let previous = state.geometry.lock().ok().and_then(|value| *value);
     let (collapsed_rect, dock) = collapsed_geometry_for_expand(
         current.position,
         collapsed_size,
         &monitor,
-        threshold,
         safe_inset as i32,
         previous,
     );
@@ -623,7 +623,22 @@ mod geometry_tests {
     fn window_size_includes_the_transparent_safe_inset() {
         assert_eq!(window_size_for_visual_size(80, 4), 88);
         assert_eq!(widget_window_size(320.0, 1.5, 6), 492);
-        assert_eq!(collapsed_window_size(1.0, 4), PhysicalSize::new(120, 88));
+        assert_eq!(collapsed_window_size(1.0, 4), PhysicalSize::new(104, 72));
+    }
+
+    #[test]
+    fn compact_drag_release_preserves_the_position_without_edge_snapping() {
+        let size = PhysicalSize::new(104, 72);
+        let released = PhysicalPosition::new(1800, 500);
+        let (settled, dock) = settle_collapsed_drag_in_bounds(
+            released,
+            size,
+            PhysicalPosition::new(0, 0),
+            PhysicalSize::new(1920, 1040),
+            4,
+        );
+        assert_eq!(settled, released);
+        assert!(!dock.is_docked());
     }
 
     #[test]
@@ -862,7 +877,6 @@ fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<bool
     let Some(monitor) = monitor else {
         return Ok(moved);
     };
-    let threshold = logical_to_physical(SNAP_THRESHOLD_LOGICAL, scale_factor) as i32;
     let safe_inset = logical_to_physical(EDGE_SAFE_INSET_LOGICAL, scale_factor);
     let collapsed_size = collapsed_window_size(scale_factor, safe_inset);
     let expanded_size = PhysicalSize::new(
@@ -886,29 +900,13 @@ fn finish_widget_drag(app: AppHandle, state: State<'_, AppState>) -> Result<bool
 
     match mode {
         WidgetMode::Collapsed => {
-            let dock = detect_dock(
+            let (next_position, dock) = settle_collapsed_drag_in_bounds(
                 current.position,
                 collapsed_size,
-                &monitor,
-                threshold,
+                *monitor.position(),
+                *monitor.size(),
                 safe_inset as i32,
             );
-            let next_position = if dock.is_docked() {
-                snap_position(
-                    current.position,
-                    collapsed_size,
-                    dock,
-                    &monitor,
-                    safe_inset as i32,
-                )
-            } else {
-                clamp_position_to_monitor(
-                    current.position,
-                    collapsed_size,
-                    &monitor,
-                    safe_inset as i32,
-                )
-            };
             let collapsed_rect = WidgetRect {
                 position: next_position,
                 size: collapsed_size,
@@ -1060,13 +1058,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let diagnostics = MenuItem::with_id(
-        app,
-        "diagnostics",
-        "Environment diagnostics",
-        true,
-        None::<&str>,
-    )?;
     let language = MenuItem::with_id(
         app,
         "language",
@@ -1111,7 +1102,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         let _ = pin.set_text("固定 / 取消固定当前服务");
         let _ = connect_claude.set_text("连接 Claude");
         let _ = disconnect_claude.set_text("断开 Claude");
-        let _ = diagnostics.set_text("环境诊断");
         let _ = language.set_text("Switch to English");
         let _ = autostart.set_text("开机启动");
         let _ = quit.set_text("退出");
@@ -1127,7 +1117,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
             &pin,
             &connect_claude,
             &disconnect_claude,
-            &diagnostics,
             &language,
             &autostart,
             &test_short_window,
@@ -1145,7 +1134,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
             &pin,
             &connect_claude,
             &disconnect_claude,
-            &diagnostics,
             &language,
             &autostart,
             &quit,
@@ -1165,7 +1153,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     let pin_menu = pin.clone();
     let connect_claude_menu = connect_claude.clone();
     let disconnect_claude_menu = disconnect_claude.clone();
-    let diagnostics_menu = diagnostics.clone();
     let language_menu = language.clone();
     let quit_menu = quit.clone();
     #[cfg(debug_assertions)]
@@ -1198,12 +1185,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                         let _ = app.emit_to("widget", "refresh-requested", ());
                     }
                 });
-            }
-            "diagnostics" => {
-                if let Some(window) = app.get_webview_window("diagnostics") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
             }
             "debug-short-window" =>
             {
@@ -1286,11 +1267,6 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                         } else {
                             "断开 Claude"
                         });
-                        let _ = diagnostics_menu.set_text(if english {
-                            "Environment diagnostics"
-                        } else {
-                            "环境诊断"
-                        });
                         let _ = language_menu.set_text(if english {
                             "切换到中文"
                         } else {
@@ -1369,6 +1345,7 @@ pub fn run() {
                 drag_origin: Mutex::new(None),
                 drag_started: Mutex::new(None),
             });
+            app.manage(diagnostics::DiagnosticsState::default());
             if setup_tray(app).is_err() {
                 eprintln!("tray setup failed; enabling taskbar fallback");
                 if let Some(window) = app.get_webview_window("widget") {
@@ -1438,7 +1415,8 @@ pub fn run() {
             subscription::get_subscriptions,
             subscription::refresh_subscriptions,
             subscription::open_subscription_login,
-            diagnostics::get_environment_status,
+            diagnostics::open_diagnostics,
+            diagnostics::close_diagnostics,
             diagnostics::get_diagnostics_report,
             diagnostics::copy_diagnostics_report
         ])
@@ -1467,6 +1445,9 @@ pub fn run() {
                     return;
                 }
                 api.prevent_close();
+                if window.label() == "diagnostics" {
+                    diagnostics::deactivate(window.app_handle());
+                }
                 let _ = window.hide();
             }
         })

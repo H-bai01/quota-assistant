@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { QuotaOverview, QuotaSummary } from "./QuotaDashboard";
-import type { Language, WidgetPreferences } from "../types";
+import type { Language, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
 beforeAll(() => {
   Object.defineProperty(window, "PointerEvent", { value: MouseEvent, writable: true });
@@ -53,7 +53,7 @@ describe("QuotaSummary interactions", () => {
 });
 
 describe("QuotaOverview click-through lock", () => {
-  function renderOverview(language: Language, onLockClickThrough = vi.fn()) {
+  function renderOverview(language: Language, onLockClickThrough = vi.fn(), subscriptions: SubscriptionSnapshot[] = []) {
     const preferences: WidgetPreferences = {
       locked: false,
       alwaysOnTop: true,
@@ -64,7 +64,7 @@ describe("QuotaOverview click-through lock", () => {
     };
     render(<QuotaOverview
       snapshots={[]}
-      subscriptions={[]}
+      subscriptions={subscriptions}
       preferences={preferences}
       onDrag={vi.fn()}
       onHover={vi.fn()}
@@ -93,5 +93,23 @@ describe("QuotaOverview click-through lock", () => {
     renderOverview("en");
     const button = screen.getByRole("button", { name: "Lock click-through" });
     expect(button.getAttribute("title")).toBe("Lock click-through");
+  });
+
+  it("uses a fully English renewal date while preserving a Chinese source label", () => {
+    renderOverview("en", vi.fn(), [{
+      provider: "codex",
+      displayName: "CODEX",
+      plan: "PRO",
+      billingSource: "apple",
+      cycle: "monthly",
+      renewsAt: "2026-08-08T00:00:00+08:00",
+      renewalLabel: "8月8日续期",
+      remainingDays: 10,
+      status: "ready",
+      message: null,
+      updatedAt: "2026-07-29T00:00:00Z",
+    }]);
+    expect(screen.getByText("Aug 8, 2026")).toBeTruthy();
+    expect(screen.queryByText("8月8日续期")).toBeNull();
   });
 });

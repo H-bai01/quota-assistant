@@ -13,6 +13,7 @@ const bridge = vi.hoisted(() => ({
   getSubscriptions: vi.fn(),
   listenDesktopEvents: vi.fn(),
   moveCompactDragging: vi.fn(),
+  openDiagnostics: vi.fn(),
   openSubscriptionLogin: vi.fn(),
   refreshSubscriptions: vi.fn(),
   setAlwaysOnTop: vi.fn(),
@@ -80,6 +81,7 @@ beforeEach(() => {
   bridge.updatePreferences.mockResolvedValue(undefined);
   bridge.connectClaude.mockResolvedValue(undefined);
   bridge.openSubscriptionLogin.mockResolvedValue(undefined);
+  bridge.openDiagnostics.mockResolvedValue(undefined);
   bridge.setClickThrough.mockResolvedValue({ ...preferences, locked: true });
 });
 
@@ -107,5 +109,71 @@ describe("App click-through lock", () => {
     expect(bridge.setClickThrough).toHaveBeenCalledWith(true);
     expect((await screen.findByRole("status")).textContent).toContain("无法锁定鼠标穿透，当前状态已保留。");
     expect(screen.getByRole("button", { name: "锁定鼠标穿透" })).toBe(button);
+  });
+});
+
+describe("App diagnostics consent", () => {
+  it("does not run diagnostics during a successful quota fetch", async () => {
+    await openExpandedOverview();
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "开启诊断" })).toBeNull();
+  });
+
+  it("does not offer diagnostics for stale snapshots that still contain usable data", async () => {
+    bridge.fetchSnapshots.mockResolvedValue(snapshots.map((item) => ({
+      ...item,
+      status: "stale",
+      message: "Using cached quota data",
+    })));
+    await openExpandedOverview();
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "开启诊断" })).toBeNull();
+  });
+
+  it("offers a scoped diagnostic after a relevant failure and runs it only after consent", async () => {
+    bridge.fetchSnapshots.mockResolvedValue(snapshots.map((item) => item.provider === "claude"
+      ? { ...item, status: "signed_out", message: "Sign-in required" }
+      : item));
+    await openExpandedOverview();
+    const enable = await screen.findByRole("button", { name: "开启诊断" });
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    fireEvent.click(enable);
+    expect(bridge.openDiagnostics).toHaveBeenCalledWith([
+      { provider: "claude", errorCategory: "signed_out" },
+    ]);
+  });
+
+  it("dismisses the diagnostic offer without running checks", async () => {
+    bridge.fetchSnapshots.mockResolvedValue(snapshots.map((item) => item.provider === "codex"
+      ? { ...item, status: "unavailable", message: "Unavailable" }
+      : item));
+    await openExpandedOverview();
+    fireEvent.click(await screen.findByRole("button", { name: "暂不开启" }));
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "开启诊断" })).toBeNull();
+  });
+
+  it("offers diagnostics for a subscription fetch that returns unavailable", async () => {
+    bridge.refreshSubscriptions.mockResolvedValue([{
+      provider: "claude",
+      displayName: "CLAUDE",
+      plan: null,
+      billingSource: "unknown",
+      cycle: null,
+      renewsAt: null,
+      renewalLabel: null,
+      remainingDays: null,
+      status: "unavailable",
+      message: "Subscription unavailable",
+      updatedAt: "2026-07-29T00:00:00Z",
+    }]);
+    await openExpandedOverview();
+    fireEvent.click(screen.getByRole("button", { name: "获取订阅信息" }));
+    const enable = await screen.findByRole("button", { name: "开启诊断" });
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    fireEvent.click(enable);
+    expect(bridge.openDiagnostics).toHaveBeenCalledWith([
+      { provider: "claude", errorCategory: "subscription_unavailable" },
+    ]);
   });
 });

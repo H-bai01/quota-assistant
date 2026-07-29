@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampPercent, formatResetDate, formatResetTime, needsFastRefresh, quotaTier } from "./format";
+import { clampPercent, formatRenewalDate, formatResetDate, formatResetTime, needsFastRefresh, quotaTier } from "./format";
 
 describe("quota formatting", () => {
   it("clamps untrusted percentages", () => {
@@ -43,5 +43,11 @@ describe("quota formatting", () => {
     expect(formatResetDate(null)).toBe("日期未知");
     expect(formatResetDate(null, "zh-CN")).toBe("日期未知");
     expect(formatResetDate(null, "en")).toBe("Date unknown");
+  });
+
+  it("formats renewal dates in English without changing Chinese compact dates", () => {
+    expect(formatRenewalDate("2026-08-08T00:00:00+08:00", "en")).toBe("Aug 8, 2026");
+    expect(formatRenewalDate("2026-08-08T00:00:00+08:00", "zh-CN")).toBe("8/8");
+    expect(formatRenewalDate(null, "en")).toBe("Date unknown");
   });
 });

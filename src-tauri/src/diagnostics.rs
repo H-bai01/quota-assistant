@@ -1,21 +1,22 @@
 use std::{
+    collections::HashSet,
+    fs,
     io::Write,
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    sync::Mutex,
+    time::Duration,
 };
 
-use serde::Serialize;
-use tauri::AppHandle;
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::sync::watch;
 
-use crate::claude_auth;
-
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct EnvironmentStatus {
-    pub codex_installed: bool,
-    pub codex_credentials_found: bool,
-    pub claude_installed: bool,
-    pub claude_credentials_found: bool,
+pub struct DiagnosticTarget {
+    pub provider: String,
+    pub error_category: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +37,92 @@ pub struct DiagnosticsReport {
     pub raw_text: String,
 }
 
+#[derive(Default)]
+struct DiagnosticSession {
+    enabled: bool,
+    targets: Vec<DiagnosticTarget>,
+    last_report: Option<String>,
+}
+
+pub struct DiagnosticsState {
+    session: Mutex<DiagnosticSession>,
+    cancellation: watch::Sender<u64>,
+}
+
+impl Default for DiagnosticsState {
+    fn default() -> Self {
+        let (cancellation, _) = watch::channel(0);
+        Self {
+            session: Mutex::new(DiagnosticSession::default()),
+            cancellation,
+        }
+    }
+}
+
+impl DiagnosticsState {
+    fn enable(&self, targets: Vec<DiagnosticTarget>) -> Result<(), String> {
+        self.cancel_current();
+        let mut session = self
+            .session
+            .lock()
+            .map_err(|_| "diagnostics state unavailable".to_string())?;
+        session.enabled = true;
+        session.targets = targets;
+        session.last_report = None;
+        Ok(())
+    }
+
+    fn disable(&self) {
+        self.cancel_current();
+        if let Ok(mut session) = self.session.lock() {
+            *session = DiagnosticSession::default();
+        }
+    }
+
+    fn cancel_current(&self) {
+        self.cancellation.send_modify(|generation| {
+            *generation = generation.saturating_add(1);
+        });
+    }
+
+    fn active_targets(&self) -> Result<Vec<DiagnosticTarget>, String> {
+        let session = self
+            .session
+            .lock()
+            .map_err(|_| "diagnostics state unavailable".to_string())?;
+        if !session.enabled {
+            return Err("diagnostics are not enabled".into());
+        }
+        Ok(session.targets.clone())
+    }
+
+    fn store_report(&self, raw_text: String) -> Result<(), String> {
+        let mut session = self
+            .session
+            .lock()
+            .map_err(|_| "diagnostics state unavailable".to_string())?;
+        if !session.enabled {
+            return Err("diagnostics were stopped".into());
+        }
+        session.last_report = Some(raw_text);
+        Ok(())
+    }
+
+    fn report_text(&self) -> Result<String, String> {
+        let session = self
+            .session
+            .lock()
+            .map_err(|_| "diagnostics state unavailable".to_string())?;
+        if !session.enabled {
+            return Err("diagnostics are not enabled".into());
+        }
+        session
+            .last_report
+            .clone()
+            .ok_or_else(|| "diagnostics report is not ready".to_string())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Platform {
     Macos,
@@ -51,153 +138,316 @@ fn current_platform() -> Platform {
     }
 }
 
-fn platform_label(platform: Platform) -> &'static str {
-    match platform {
-        Platform::Macos => "macOS",
-        Platform::Windows => "Windows",
-        Platform::Other => "Operating system",
-    }
-}
-
-fn exists_any(paths: &[PathBuf]) -> bool {
-    paths.iter().any(|path| path.is_file() || path.is_dir())
-}
-
 fn home() -> Option<PathBuf> {
     dirs::home_dir()
 }
 
-fn codex_auth_path() -> Option<PathBuf> {
-    std::env::var_os("CODEX_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home().map(|path| path.join(".codex")))
-        .map(|path| path.join("auth.json"))
+fn validate_targets(targets: Vec<DiagnosticTarget>) -> Result<Vec<DiagnosticTarget>, String> {
+    if targets.is_empty() {
+        return Err("at least one failed provider is required".into());
+    }
+    let mut seen = HashSet::new();
+    let mut validated = Vec::new();
+    for target in targets {
+        if !matches!(target.provider.as_str(), "codex" | "claude") {
+            return Err("unsupported diagnostics provider".into());
+        }
+        if !matches!(
+            target.error_category.as_str(),
+            "signed_out" | "unavailable" | "subscription_unavailable"
+        ) {
+            return Err("unsupported diagnostics error category".into());
+        }
+        if seen.insert(target.provider.clone()) {
+            validated.push(target);
+        }
+    }
+    Ok(validated)
 }
 
-fn executable_on_path(names: &[&str]) -> bool {
-    std::env::var_os("PATH")
-        .map(|paths| {
-            std::env::split_paths(&paths).any(|directory| {
-                names
-                    .iter()
-                    .map(|name| directory.join(name))
-                    .any(|path| path.is_file())
-            })
-        })
-        .unwrap_or(false)
-}
-
-fn app_candidates(
+fn provider_candidates(
     platform: Platform,
+    provider: &str,
     home: Option<&Path>,
     local_app_data: Option<&Path>,
     program_files: Option<&Path>,
     program_files_x86: Option<&Path>,
-) -> (Vec<PathBuf>, Vec<PathBuf>, Vec<PathBuf>) {
-    let mut codex_apps = Vec::new();
-    let mut claude_apps = Vec::new();
-    let mut claude_data = Vec::new();
-    match platform {
-        Platform::Macos => {
-            codex_apps.extend([
+) -> (Vec<PathBuf>, Vec<PathBuf>) {
+    let mut applications = Vec::new();
+    let mut data_directories = Vec::new();
+    match (platform, provider) {
+        (Platform::Macos, "codex") => {
+            applications.extend([
                 PathBuf::from("/Applications/Codex.app"),
                 PathBuf::from("/Applications/ChatGPT.app"),
                 PathBuf::from("/Applications/ChatGPT Classic.app"),
             ]);
-            claude_apps.extend([
+            if let Some(home) = home {
+                data_directories.push(home.join(".codex"));
+            }
+        }
+        (Platform::Macos, "claude") => {
+            applications.extend([
                 PathBuf::from("/Applications/Claude.app"),
                 PathBuf::from("/Applications/Claude Code.app"),
             ]);
             if let Some(home) = home {
-                claude_data.push(home.join("Library/Application Support/Claude/claude-code"));
-                claude_data.push(home.join(".claude"));
+                data_directories.extend([
+                    home.join("Library/Application Support/Claude"),
+                    home.join(".claude"),
+                ]);
             }
         }
-        Platform::Windows => {
+        (Platform::Windows, "codex") => {
             for root in [local_app_data, program_files, program_files_x86]
                 .into_iter()
                 .flatten()
             {
-                codex_apps.extend([
+                applications.extend([
                     root.join("Programs/Codex/Codex.exe"),
                     root.join("Programs/ChatGPT/ChatGPT.exe"),
                     root.join("OpenAI/ChatGPT/ChatGPT.exe"),
                     root.join("Codex/Codex.exe"),
                 ]);
-                claude_apps.extend([
+            }
+            if let Some(home) = home {
+                data_directories.push(home.join(".codex"));
+            }
+        }
+        (Platform::Windows, "claude") => {
+            for root in [local_app_data, program_files, program_files_x86]
+                .into_iter()
+                .flatten()
+            {
+                applications.extend([
                     root.join("Programs/Claude/Claude.exe"),
                     root.join("AnthropicClaude/Claude.exe"),
                     root.join("Claude/Claude.exe"),
                 ]);
             }
             if let Some(home) = home {
-                claude_data.push(home.join(".claude"));
+                data_directories.push(home.join(".claude"));
             }
             if let Some(local_app_data) = local_app_data {
-                claude_data.push(local_app_data.join("Claude"));
+                data_directories.push(local_app_data.join("Claude"));
             }
         }
-        Platform::Other => {
+        (Platform::Other, "codex") => {
             if let Some(home) = home {
-                claude_data.push(home.join(".claude"));
+                data_directories.push(home.join(".codex"));
             }
         }
+        (Platform::Other, "claude") => {
+            if let Some(home) = home {
+                data_directories.push(home.join(".claude"));
+            }
+        }
+        _ => {}
     }
-    (codex_apps, claude_apps, claude_data)
+    (applications, data_directories)
 }
 
-pub fn environment_status(app: Option<&AppHandle>) -> EnvironmentStatus {
+fn exists_any(paths: &[PathBuf]) -> bool {
+    paths.iter().any(|path| path.is_file() || path.is_dir())
+}
+
+fn readable_any(paths: &[PathBuf]) -> bool {
+    paths.iter().any(|path| {
+        if path.is_dir() {
+            fs::read_dir(path).is_ok()
+        } else if path.is_file() {
+            fs::File::open(path).is_ok()
+        } else {
+            false
+        }
+    })
+}
+
+fn process_running(platform: Platform, provider: &str) -> bool {
+    let names: &[&str] = match provider {
+        "codex" => &["Codex", "ChatGPT", "Codex.exe", "ChatGPT.exe"],
+        "claude" => &["Claude", "Claude Code", "Claude.exe"],
+        _ => return false,
+    };
+    match platform {
+        Platform::Macos => names.iter().any(|name| {
+            Command::new("/usr/bin/pgrep")
+                .args(["-x", name])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|status| status.success())
+        }),
+        Platform::Windows => Command::new("tasklist")
+            .args(["/NH"])
+            .output()
+            .ok()
+            .filter(|output| output.status.success())
+            .and_then(|output| String::from_utf8(output.stdout).ok())
+            .map(|output| {
+                let output = output.to_ascii_lowercase();
+                names
+                    .iter()
+                    .any(|name| output.contains(&name.to_ascii_lowercase()))
+            })
+            .unwrap_or(false),
+        Platform::Other => false,
+    }
+}
+
+fn endpoint(provider: &str) -> &'static str {
+    match provider {
+        "codex" => "https://chatgpt.com/",
+        "claude" => "https://claude.ai/",
+        _ => "https://invalid.invalid/",
+    }
+}
+
+async fn endpoint_reachable(
+    client: &reqwest::Client,
+    provider: &str,
+    cancellation: &mut watch::Receiver<u64>,
+) -> Result<bool, String> {
+    tokio::select! {
+        _ = cancellation.changed() => Err("diagnostics were stopped".into()),
+        response = client.head(endpoint(provider)).send() => Ok(response.is_ok()),
+    }
+}
+
+fn item(label: String, available: bool) -> DiagnosticItem {
+    DiagnosticItem {
+        label,
+        value: if available { "yes" } else { "no" }.into(),
+        status: if available { "ok" } else { "warning" }.into(),
+    }
+}
+
+fn error_item(provider: &str, category: &str) -> DiagnosticItem {
+    DiagnosticItem {
+        label: format!("{provider} fetch error"),
+        value: match category {
+            "signed_out" => "signed out",
+            "subscription_unavailable" => "subscription unavailable",
+            _ => "unavailable",
+        }
+        .into(),
+        status: "warning".into(),
+    }
+}
+
+fn report_text(version: &str, generated_at: &str, items: &[DiagnosticItem]) -> String {
+    let mut lines = vec![
+        format!("额度助手 {version}"),
+        format!("Generated: {generated_at}"),
+    ];
+    lines.extend(
+        items
+            .iter()
+            .map(|entry| format!("{}: {} [{}]", entry.label, entry.value, entry.status)),
+    );
+    lines.join("\n")
+}
+
+#[tauri::command]
+pub fn open_diagnostics(
+    targets: Vec<DiagnosticTarget>,
+    app: AppHandle,
+    state: State<'_, DiagnosticsState>,
+) -> Result<(), String> {
+    let targets = validate_targets(targets)?;
+    let window = app
+        .get_webview_window("diagnostics")
+        .ok_or_else(|| "diagnostics window missing".to_string())?;
+    state.enable(targets)?;
+    if window.show().is_err() {
+        state.disable();
+        return Err("failed to show diagnostics window".into());
+    }
+    let _ = window.set_focus();
+    let _ = app.emit_to("diagnostics", "diagnostics-activated", ());
+    Ok(())
+}
+
+pub fn deactivate(app: &AppHandle) {
+    if let Some(state) = app.try_state::<DiagnosticsState>() {
+        state.disable();
+    }
+    let _ = app.emit_to("diagnostics", "diagnostics-deactivated", ());
+}
+
+#[tauri::command]
+pub fn close_diagnostics(app: AppHandle) -> Result<(), String> {
+    deactivate(&app);
+    let window = app
+        .get_webview_window("diagnostics")
+        .ok_or_else(|| "diagnostics window missing".to_string())?;
+    window
+        .hide()
+        .map_err(|_| "failed to close diagnostics window".to_string())
+}
+
+#[tauri::command]
+pub async fn get_diagnostics_report(
+    app: AppHandle,
+    state: State<'_, DiagnosticsState>,
+) -> Result<DiagnosticsReport, String> {
+    let targets = state.active_targets()?;
+    let mut cancellation = state.cancellation.subscribe();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(4))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|_| "failed to initialize diagnostics client".to_string())?;
     let platform = current_platform();
     let user_home = home();
     let local_app_data = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
     let program_files = std::env::var_os("PROGRAMFILES").map(PathBuf::from);
     let program_files_x86 = std::env::var_os("PROGRAMFILES(X86)").map(PathBuf::from);
-    let (codex_apps, claude_apps, claude_data) = app_candidates(
-        platform,
-        user_home.as_deref(),
-        local_app_data.as_deref(),
-        program_files.as_deref(),
-        program_files_x86.as_deref(),
-    );
-    let claude_cookie = app
-        .and_then(|handle| claude_auth::cookie_header(handle).ok().flatten())
-        .is_some();
-    let codex_executables: &[&str] = if platform == Platform::Windows {
-        &["codex.exe", "ChatGPT.exe"]
-    } else {
-        &["codex"]
-    };
-    let claude_executables: &[&str] = if platform == Platform::Windows {
-        &["claude.exe", "Claude.exe"]
-    } else {
-        &["claude"]
-    };
-    EnvironmentStatus {
-        codex_installed: exists_any(&codex_apps) || executable_on_path(codex_executables),
-        codex_credentials_found: codex_auth_path().is_some_and(|path| path.is_file()),
-        claude_installed: exists_any(&claude_apps) || executable_on_path(claude_executables),
-        claude_credentials_found: claude_cookie || exists_any(&claude_data),
+    let mut items = Vec::new();
+    for target in &targets {
+        let (applications, data_directories) = provider_candidates(
+            platform,
+            &target.provider,
+            user_home.as_deref(),
+            local_app_data.as_deref(),
+            program_files.as_deref(),
+            program_files_x86.as_deref(),
+        );
+        items.push(error_item(&target.provider, &target.error_category));
+        items.push(item(
+            format!("{} desktop application", target.provider),
+            exists_any(&applications),
+        ));
+        items.push(item(
+            format!("{} desktop process", target.provider),
+            process_running(platform, &target.provider),
+        ));
+        items.push(item(
+            format!("{} local data directory readable", target.provider),
+            readable_any(&data_directories),
+        ));
+        items.push(item(
+            format!("{} official endpoint reachable", target.provider),
+            endpoint_reachable(&client, &target.provider, &mut cancellation).await?,
+        ));
     }
-}
-
-fn command_output(program: &str, args: &[&str]) -> Option<String> {
-    Command::new(program)
-        .args(args)
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty())
-}
-
-fn system_version(platform: Platform) -> String {
-    match platform {
-        Platform::Macos => command_output("/usr/bin/sw_vers", &["-productVersion"]),
-        Platform::Windows => command_output("cmd", &["/C", "ver"]),
-        Platform::Other => None,
+    let version = app.package_info().version.to_string();
+    let generated_at = chrono::Utc::now().to_rfc3339();
+    let overall_status = if items.iter().all(|entry| entry.status == "ok") {
+        "ok"
+    } else {
+        "warning"
     }
-    .unwrap_or_else(|| "unknown".into())
+    .to_string();
+    let raw_text = report_text(&version, &generated_at, &items);
+    state.store_report(raw_text.clone())?;
+    Ok(DiagnosticsReport {
+        version,
+        generated_at,
+        overall_status,
+        items,
+        raw_text,
+    })
 }
 
 fn clipboard_command(platform: Platform) -> Option<(&'static str, &'static [&'static str])> {
@@ -208,68 +458,9 @@ fn clipboard_command(platform: Platform) -> Option<(&'static str, &'static [&'st
     }
 }
 
-fn item(label: &str, available: bool) -> DiagnosticItem {
-    DiagnosticItem {
-        label: label.into(),
-        value: if available { "yes" } else { "no" }.into(),
-        status: if available { "ok" } else { "warning" }.into(),
-    }
-}
-
 #[tauri::command]
-pub fn get_environment_status(app: AppHandle) -> EnvironmentStatus {
-    environment_status(Some(&app))
-}
-
-#[tauri::command]
-pub fn get_diagnostics_report(app: AppHandle) -> DiagnosticsReport {
-    let status = environment_status(Some(&app));
-    let version = app.package_info().version.to_string();
-    let generated_at = chrono::Utc::now().to_rfc3339();
-    let platform = current_platform();
-    let mut items = vec![
-        DiagnosticItem {
-            label: platform_label(platform).into(),
-            value: system_version(platform),
-            status: "info".into(),
-        },
-        DiagnosticItem {
-            label: "Architecture".into(),
-            value: std::env::consts::ARCH.into(),
-            status: "info".into(),
-        },
-        item("Codex application", status.codex_installed),
-        item("Codex credentials", status.codex_credentials_found),
-        item("Claude application", status.claude_installed),
-        item("Claude login", status.claude_credentials_found),
-    ];
-    let overall_status = if status.codex_credentials_found || status.claude_credentials_found {
-        "ok"
-    } else {
-        "warning"
-    }
-    .to_string();
-    let mut lines = vec![
-        format!("额度助手 {version}"),
-        format!("Generated: {generated_at}"),
-    ];
-    lines.extend(
-        items
-            .iter()
-            .map(|entry| format!("{}: {} [{}]", entry.label, entry.value, entry.status)),
-    );
-    DiagnosticsReport {
-        version,
-        generated_at,
-        overall_status,
-        items: std::mem::take(&mut items),
-        raw_text: lines.join("\n"),
-    }
-}
-
-#[tauri::command]
-pub fn copy_diagnostics_report(app: AppHandle) -> Result<(), String> {
-    let report = get_diagnostics_report(app);
+pub fn copy_diagnostics_report(state: State<'_, DiagnosticsState>) -> Result<(), String> {
+    let raw_text = state.report_text()?;
     let (program, args) = clipboard_command(current_platform())
         .ok_or_else(|| "Clipboard integration is unavailable on this platform".to_string())?;
     let mut child = Command::new(program)
@@ -281,7 +472,7 @@ pub fn copy_diagnostics_report(app: AppHandle) -> Result<(), String> {
         .stdin
         .as_mut()
         .ok_or_else(|| "Clipboard input is unavailable".to_string())?
-        .write_all(report.raw_text.as_bytes())
+        .write_all(raw_text.as_bytes())
         .map_err(|_| "Unable to copy the diagnostics report".to_string())?;
     let status = child
         .wait()
@@ -297,17 +488,36 @@ pub fn copy_diagnostics_report(app: AppHandle) -> Result<(), String> {
 mod tests {
     use super::*;
 
+    fn target(provider: &str, error_category: &str) -> DiagnosticTarget {
+        DiagnosticTarget {
+            provider: provider.into(),
+            error_category: error_category.into(),
+        }
+    }
+
     #[test]
-    fn macos_candidates_are_platform_specific() {
-        let home = Path::new("/Users/test");
-        let (codex, claude, data) = app_candidates(Platform::Macos, Some(home), None, None, None);
-        assert!(codex.contains(&PathBuf::from("/Applications/Codex.app")));
-        assert!(claude.contains(&PathBuf::from("/Applications/Claude.app")));
-        assert!(data.contains(&home.join("Library/Application Support/Claude/claude-code")));
+    fn validation_accepts_only_known_failed_providers() {
         assert_eq!(
-            clipboard_command(Platform::Macos),
-            Some(("/usr/bin/pbcopy", &[][..]))
+            validate_targets(vec![target("codex", "signed_out")]).unwrap(),
+            vec![target("codex", "signed_out")]
         );
+        assert!(validate_targets(vec![target("claude", "subscription_unavailable")]).is_ok());
+        assert!(validate_targets(vec![target("other", "unavailable")]).is_err());
+        assert!(validate_targets(vec![target("claude", "raw_server_error")]).is_err());
+        assert!(validate_targets(Vec::new()).is_err());
+    }
+
+    #[test]
+    fn macos_candidates_are_scoped_without_auth_files() {
+        let home = Path::new("/Users/test");
+        let (applications, data) =
+            provider_candidates(Platform::Macos, "codex", Some(home), None, None, None);
+        assert!(applications.contains(&PathBuf::from("/Applications/Codex.app")));
+        assert_eq!(data, vec![home.join(".codex")]);
+        assert!(applications
+            .iter()
+            .chain(data.iter())
+            .all(|path| !path.to_string_lossy().contains("auth.json")));
     }
 
     #[test]
@@ -315,21 +525,33 @@ mod tests {
         let home = Path::new(r"C:\Users\test");
         let local = Path::new(r"C:\Users\test\AppData\Local");
         let programs = Path::new(r"C:\Program Files");
-        let (codex, claude, data) = app_candidates(
+        let (applications, data) = provider_candidates(
             Platform::Windows,
+            "claude",
             Some(home),
             Some(local),
             Some(programs),
             None,
         );
-        assert!(codex.contains(&local.join("Programs/ChatGPT/ChatGPT.exe")));
-        assert!(claude.contains(&programs.join("Claude/Claude.exe")));
+        assert!(applications.contains(&programs.join("Claude/Claude.exe")));
         assert!(data.contains(&home.join(".claude")));
         assert_eq!(
             clipboard_command(Platform::Windows),
             Some(("cmd", &["/C", "clip"][..]))
         );
-        assert_eq!(platform_label(Platform::Windows), "Windows");
+    }
+
+    #[test]
+    fn report_contains_only_standardized_non_sensitive_values() {
+        let items = vec![
+            error_item("claude", "signed_out"),
+            item("claude local data directory readable".into(), true),
+        ];
+        let report = report_text("0.2.3", "2026-07-29T00:00:00Z", &items);
+        assert!(report.contains("signed out"));
+        for forbidden in ["auth.json", "token", "cookie", "password", "/users/test"] {
+            assert!(!report.to_ascii_lowercase().contains(forbidden));
+        }
     }
 
     #[test]

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { currentMonitor } from "@tauri-apps/api/window";
-import type { DiagnosticsReport, EnvironmentStatus, ProviderId, ProviderSnapshot, SubscriptionLoginEnded, SubscriptionSnapshot, WidgetPreferences } from "../types";
+import type { DiagnosticTarget, DiagnosticsReport, ProviderId, ProviderSnapshot, SubscriptionLoginEnded, SubscriptionSnapshot, WidgetPreferences } from "../types";
 
 const defaultPreferences: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
 
@@ -116,9 +116,14 @@ export async function openSubscriptionLogin(provider: ProviderId): Promise<void>
   await invoke("open_subscription_login", { provider });
 }
 
-export async function getEnvironmentStatus(): Promise<EnvironmentStatus> {
-  if (usesSanitizedPreviewData()) return { codexInstalled: true, codexCredentialsFound: true, claudeInstalled: true, claudeCredentialsFound: false };
-  return invoke<EnvironmentStatus>("get_environment_status");
+export async function openDiagnostics(targets: DiagnosticTarget[]): Promise<void> {
+  if (usesSanitizedPreviewData()) return;
+  await invoke("open_diagnostics", { targets });
+}
+
+export async function closeDiagnostics(): Promise<void> {
+  if (usesSanitizedPreviewData()) return;
+  await invoke("close_diagnostics");
 }
 
 export async function getDiagnosticsReport(): Promise<DiagnosticsReport> {
@@ -129,9 +134,8 @@ export async function getDiagnosticsReport(): Promise<DiagnosticsReport> {
     items: [
       { label: "操作系统", value: "macOS（演示环境）", status: "ok" },
       { label: "Codex Desktop", value: "已检测到", status: "ok" },
-      { label: "Codex 登录状态", value: "已检测到", status: "ok" },
       { label: "Claude Desktop", value: "已检测到", status: "ok" },
-      { label: "Claude 登录状态", value: "请在额度助手内连接", status: "warning" },
+      { label: "官方端点", value: "可连接", status: "ok" },
     ],
     rawText: "Sanitized browser preview",
   };
@@ -214,4 +218,14 @@ export async function listenDesktopEvents(handlers: {
   const unlistenRefresh = await listen("refresh-requested", handlers.onRefresh);
   const unlistenSubscriptionLogin = await listen<SubscriptionLoginEnded>("subscription-login-ended", (event) => handlers.onSubscriptionLoginEnded(event.payload));
   return () => { unlistenPreferences(); unlistenRefresh(); unlistenSubscriptionLogin(); };
+}
+
+export async function listenDiagnosticsEvents(handlers: {
+  onActivated: () => void;
+  onDeactivated: () => void;
+}): Promise<() => void> {
+  if (!isTauri()) return () => undefined;
+  const unlistenActivated = await listen("diagnostics-activated", handlers.onActivated);
+  const unlistenDeactivated = await listen("diagnostics-deactivated", handlers.onDeactivated);
+  return () => { unlistenActivated(); unlistenDeactivated(); };
 }

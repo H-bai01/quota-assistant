@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QuotaOverview, QuotaSummary } from "./components/QuotaDashboard";
-import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setClickThrough, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
+import { beginCompactDragging, connectClaude, fetchSnapshots, finishCompactDragging, getPreferences, getSubscriptions, listenDesktopEvents, moveCompactDragging, openDiagnostics, openSubscriptionLogin, refreshSubscriptions, setAlwaysOnTop, setClickThrough, setWidgetExpanded, startDragging, updatePreferences } from "./lib/bridge";
 import { needsFastRefresh } from "./lib/format";
 import { copy, nextLanguage, normalizeLanguage } from "./lib/i18n";
 import { mergeSnapshots } from "./lib/snapshots";
 import { shouldContinueSubscriptionPolling, SUBSCRIPTION_POLL_INITIAL_DELAY_MS, SUBSCRIPTION_POLL_INTERVAL_MS } from "./lib/subscriptionPolling";
-import type { ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "./types";
+import type { DiagnosticTarget, ProviderId, ProviderSnapshot, SubscriptionSnapshot, WidgetPreferences } from "./types";
 
 const DEFAULT_PREFS: WidgetPreferences = { locked: false, alwaysOnTop: true, stayExpanded: false, pinnedProvider: null, autoRotateSeconds: 12, language: "zh-CN" };
+
+function diagnosticTargetsFor(values: ProviderSnapshot[]): DiagnosticTarget[] {
+  return values.flatMap((item) => item.status === "signed_out" || item.status === "unavailable"
+    ? [{ provider: item.provider, errorCategory: item.status }]
+    : []);
+}
+
+function diagnosticTargetKey(targets: DiagnosticTarget[]): string {
+  return targets.map((target) => `${target.provider}:${target.errorCategory}`).sort().join("|");
+}
 
 export default function App() {
   const [snapshots, setSnapshots] = useState<ProviderSnapshot[]>([]);
@@ -17,12 +27,15 @@ export default function App() {
   const [subscriptionAlert, setSubscriptionAlert] = useState<SubscriptionSnapshot[]>([]);
   const [compact, setCompact] = useState(true);
   const [operationError, setOperationError] = useState<string | null>(null);
+  const [diagnosticOffer, setDiagnosticOffer] = useState<DiagnosticTarget[]>([]);
   const failures = useRef(0);
+  const hasSnapshotData = useRef(false);
   const collapseTimer = useRef<number | null>(null);
   const hoverSequence = useRef(0);
   const subscriptionRequest = useRef(0);
   const subscriptionPolling = useRef<number | null>(null);
   const subscriptionPollingProvider = useRef<ProviderId | null>(null);
+  const dismissedDiagnostic = useRef<string | null>(null);
   const language = normalizeLanguage(preferences.language);
   const t = copy[language];
 
@@ -30,17 +43,37 @@ export default function App() {
     try {
       const values = await fetchSnapshots(force);
       const hasFailure = values.some((item) => item.status !== "ok");
+      hasSnapshotData.current = values.some((item) => item.status === "ok" || item.status === "stale");
       if (hasFailure) failures.current += 1;
       else failures.current = 0;
+      const targets = diagnosticTargetsFor(values);
+      const key = diagnosticTargetKey(targets);
+      if (targets.length === 0) {
+        dismissedDiagnostic.current = null;
+        setDiagnosticOffer([]);
+      } else if (dismissedDiagnostic.current !== key) {
+        setDiagnosticOffer(targets);
+      }
       setSnapshots((current) => mergeSnapshots(current, values));
     } catch {
       failures.current += 1;
-      setSnapshots((current) => current.length > 0
-        ? current.map((item) => ({ ...item, status: "stale", message: "Refresh failed. Please try again later." }))
-        : [
+      if (!hasSnapshotData.current) {
+        const targets: DiagnosticTarget[] = [
+          { provider: "codex", errorCategory: "unavailable" },
+          { provider: "claude", errorCategory: "unavailable" },
+        ];
+        if (dismissedDiagnostic.current !== diagnosticTargetKey(targets)) setDiagnosticOffer(targets);
+      }
+      setSnapshots((current) => {
+        if (current.length > 0) {
+          return current.map((item) => ({ ...item, status: "stale", message: "Refresh failed. Please try again later." }));
+        }
+        const unavailable: ProviderSnapshot[] = [
           { provider: "codex", displayName: "CODEX", plan: null, shortWindow: null, weeklyWindow: null, resetCredits: null, resetCreditExpiresAt: [], subscriptionExpiresAt: null, updatedAt: new Date().toISOString(), status: "unavailable", message: "Quota is temporarily unavailable. It will retry automatically." },
           { provider: "claude", displayName: "CLAUDE", plan: null, shortWindow: null, weeklyWindow: null, resetCredits: null, resetCreditExpiresAt: [], subscriptionExpiresAt: null, updatedAt: new Date().toISOString(), status: "unavailable", message: "Quota is temporarily unavailable. It will retry automatically." },
-        ]);
+        ];
+        return unavailable;
+      });
     }
   }, []);
 
@@ -69,6 +102,14 @@ export default function App() {
       if (request !== subscriptionRequest.current) return values;
       setSubscriptions(values);
       recordSubscriptionAlerts(values);
+      const targets: DiagnosticTarget[] = values.flatMap((item) => item.status === "unavailable"
+        ? [{ provider: item.provider, errorCategory: "subscription_unavailable" }]
+        : []);
+      setDiagnosticOffer((current) => {
+        const retained = current.filter((target) => target.errorCategory !== "subscription_unavailable");
+        const next = [...retained, ...targets];
+        return dismissedDiagnostic.current === diagnosticTargetKey(next) ? [] : next;
+      });
       return values;
     } catch {
       if (showFailure && request === subscriptionRequest.current) setOperationError("订阅信息确认超时，请重试或重新登录。");
@@ -245,6 +286,24 @@ export default function App() {
     return <QuotaSummary snapshots={snapshots} language={language} onDragStart={beginCompactDragging} onDragMove={moveCompactDragging} onDragEnd={finishCompactDragging} onExpand={() => handleHover(true)} />;
   }
 
+  const notice = operationError ?? (diagnosticOffer.length > 0 ? (
+    <div className="diagnostics-offer">
+      <span>{t.diagnosticsOffer}</span>
+      <span className="diagnostics-offer-actions" onMouseDown={(event) => event.stopPropagation()}>
+        <button type="button" onClick={() => {
+          setOperationError(null);
+          void openDiagnostics(diagnosticOffer)
+            .then(() => setDiagnosticOffer([]))
+            .catch(() => setOperationError(t.diagnosticsOpenFailed));
+        }}>{t.diagnosticsEnable}</button>
+        <button type="button" onClick={() => {
+          dismissedDiagnostic.current = diagnosticTargetKey(diagnosticOffer);
+          setDiagnosticOffer([]);
+        }}>{t.diagnosticsDismiss}</button>
+      </span>
+    </div>
+  ) : null);
+
   return (
     <>
       <QuotaOverview
@@ -262,7 +321,7 @@ export default function App() {
       onOpenSubscriptionLogin={handleSubscriptionLogin}
       onConnectClaude={() => { setOperationError(null); void connectClaude().catch(() => setOperationError(t.claudeConnectFailed)); }}
       subscriptionBusy={subscriptionBusy}
-      notice={operationError}
+      notice={notice}
       />
       {subscriptionAlert.length > 0 ? (
         <div className="subscription-alert-backdrop" role="presentation">

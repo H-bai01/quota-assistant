@@ -48,6 +48,14 @@ describe("widget transitions", () => {
     expect(api.invoke).toHaveBeenCalledWith("set_widget_locked", { locked: true });
   });
 
+  it("opens diagnostics only with the explicitly failed provider scope", async () => {
+    const { openDiagnostics } = await import("./bridge");
+    await openDiagnostics([{ provider: "claude", errorCategory: "signed_out" }]);
+    expect(api.invoke).toHaveBeenCalledWith("open_diagnostics", {
+      targets: [{ provider: "claude", errorCategory: "signed_out" }],
+    });
+  });
+
   it("starts a widget drag through the combined native command", async () => {
     vi.useFakeTimers();
     const { startDragging } = await import("./bridge");
@@ -99,5 +107,18 @@ describe("widget transitions", () => {
     cleanup();
     expect(api.unlisteners).toHaveLength(3);
     expect(api.unlisteners.every((unlisten) => unlisten.mock.calls.length === 1)).toBe(true);
+  });
+
+  it("listens for diagnostics activation and deactivation without starting checks", async () => {
+    const { listenDiagnosticsEvents } = await import("./bridge");
+    const onActivated = vi.fn();
+    const onDeactivated = vi.fn();
+    const cleanup = await listenDiagnosticsEvents({ onActivated, onDeactivated });
+    expect(api.invoke).not.toHaveBeenCalledWith("get_diagnostics_report");
+    api.listeners.get("diagnostics-activated")?.({ payload: undefined });
+    api.listeners.get("diagnostics-deactivated")?.({ payload: undefined });
+    expect(onActivated).toHaveBeenCalledTimes(1);
+    expect(onDeactivated).toHaveBeenCalledTimes(1);
+    cleanup();
   });
 });
