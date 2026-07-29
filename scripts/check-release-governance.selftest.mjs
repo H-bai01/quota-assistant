@@ -74,8 +74,17 @@ try {
   await expectRejected("missing-exact-main-ci-release-gate", async (directory) => {
     const file = path.join(directory, ".github/workflows/release.yml");
     const text = await fs.readFile(file, "utf8");
-    await fs.writeFile(file, text.replace("verify-main-ci.mjs --commit", "skipped-main-ci.mjs --commit"));
+    await fs.writeFile(file, text.replace("node scripts/verify-main-ci.mjs", "node scripts/skipped-main-ci.mjs"));
   }, /must verify completed\/success main CI for the exact release commit/);
+
+  await expectRejected("piped-main-ci-api-response", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace(
+      '> "$RUNNER_TEMP/main-ci-runs.json"',
+      '| node scripts/verify-main-ci.mjs --commit "$RELEASE_COMMIT"',
+    ));
+  }, /must not pipe GitHub API output into the main CI verifier/);
 
   await expectRejected("missing-main-ci-selftest", async (directory) => {
     const file = path.join(directory, ".github/workflows/ci.yml");
@@ -260,7 +269,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (38/38).");
+  console.log("Release governance adversarial tests passed (39/39).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

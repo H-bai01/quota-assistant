@@ -126,13 +126,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_COMMIT: ${{ inputs.release_commit }}
-        run: >-
-          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs"
-          -f branch=main
-          -f event=push
-          -f head_sha="$RELEASE_COMMIT"
-          -f per_page=100
-          | node scripts/verify-main-ci.mjs --commit "$RELEASE_COMMIT"
+        run: |
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f branch=main \
+            -f event=push \
+            -f head_sha="$RELEASE_COMMIT" \
+            -f per_page=100 \
+            > "$RUNNER_TEMP/main-ci-runs.json"
+          node scripts/verify-main-ci.mjs \
+            --commit "$RELEASE_COMMIT" \
+            --input "$RUNNER_TEMP/main-ci-runs.json"
       - name: Verify previous public release and downgrade gate
         env:
           GH_TOKEN: ${{ github.token }}

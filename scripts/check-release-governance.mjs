@@ -151,11 +151,17 @@ if (!release.includes("workflow_dispatch:")) fail("release.yml must be manually 
 if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish from push or tag events");
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify candidate artifacts and required platform evidence");
+if (/gh api[\s\S]{0,500}\|\s*node scripts\/verify-main-ci\.mjs/.test(release)) {
+  fail("release.yml must not pipe GitHub API output into the main CI verifier");
+}
 if (!release.includes('gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs"')
   || !release.includes('-f branch=main')
   || !release.includes('-f event=push')
   || !release.includes('-f head_sha="$RELEASE_COMMIT"')
-  || !release.includes('verify-main-ci.mjs --commit "$RELEASE_COMMIT"')) {
+  || !release.includes('> "$RUNNER_TEMP/main-ci-runs.json"')
+  || !release.includes('node scripts/verify-main-ci.mjs')
+  || !release.includes('--commit "$RELEASE_COMMIT"')
+  || !release.includes('--input "$RUNNER_TEMP/main-ci-runs.json"')) {
   fail("release.yml must verify completed/success main CI for the exact release commit");
 }
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
