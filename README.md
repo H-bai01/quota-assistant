@@ -1,7 +1,7 @@
 <p align="center">
   <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="96" height="96">
 </p>
-<h1 align="center">额度助手 v0.2.4</h1>
+<h1 align="center">额度助手 v0.2.5</h1>
 <p align="center">
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
@@ -17,13 +17,13 @@
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
 <p align="center">
-  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">下载 macOS 版</a></strong>
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_macos_universal.dmg">下载 macOS 版</a></strong>
   &nbsp;·&nbsp;
-  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_windows_x64-setup.exe">下载 Windows Beta</a></strong>
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_windows_x64-setup.exe">下载 Windows Beta</a></strong>
   &nbsp;·&nbsp;
-  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/SHA256SUMS.txt">SHA-256 校验</a>
+  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/SHA256SUMS.txt">SHA-256 校验</a>
 </p>
-<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.4">查看 v0.2.4 版本说明与全部附件</a></p>
+<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.5">查看 v0.2.5 版本说明与全部附件</a></p>
 
 > 安装包发布在 GitHub **Release assets** 中；仓库右侧的 **Packages** 是另一种软件包服务，本项目没有使用，因此显示为空是正常的。社区版未签名，首次打开时可能看到 Gatekeeper 或 SmartScreen 来源确认提示。
 

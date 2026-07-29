@@ -1,7 +1,7 @@
 <p align="center">
   <img src="src-tauri/icons/icon.png" alt="Quota Assistant logo" width="96" height="96">
 </p>
-<h1 align="center">Quota Assistant v0.2.4</h1>
+<h1 align="center">Quota Assistant v0.2.5</h1>
 <p align="center">
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
@@ -17,13 +17,13 @@
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
 <p align="center">
-  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">Download for macOS</a></strong>
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_macos_universal.dmg">Download for macOS</a></strong>
   &nbsp;·&nbsp;
-  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_windows_x64-setup.exe">Download Windows Beta</a></strong>
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_windows_x64-setup.exe">Download Windows Beta</a></strong>
   &nbsp;·&nbsp;
-  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/SHA256SUMS.txt">Verify SHA-256</a>
+  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/SHA256SUMS.txt">Verify SHA-256</a>
 </p>
-<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.4">View v0.2.4 notes and all assets</a></p>
+<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.5">View v0.2.5 notes and all assets</a></p>
 
 > Installers are published under GitHub **Release assets**. The repository's **Packages** area is a different package service that this project does not use, so it is normal for it to be empty. Community builds are unsigned, so Gatekeeper or SmartScreen may ask you to confirm the source on first launch.
 
