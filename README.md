@@ -17,7 +17,7 @@
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" width="560">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" width="488">
 </p>
 
 <p align="center">
@@ -36,11 +36,6 @@
 1. 安装并打开额度助手；Codex Desktop 需已在同一台电脑登录。
 2. 展开悬浮窗，点击“连接 Claude”，在应用打开的 Claude 官方页面完成登录。
 3. 点击日历按钮获取订阅信息；若需要确认购买来源，只在应用打开的官方页面登录。
-
-<p align="center">
-  <img src="docs/assets/claude-connect.jpg" alt="连接 Claude" width="280">
-  <img src="docs/assets/quota-renewal.jpg" alt="额度与续期信息" width="280">
-</p>
 
 ## 你可以看到什么
 

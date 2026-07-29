@@ -17,7 +17,7 @@
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Quota Assistant widget" width="560">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Quota Assistant widget" width="488">
 </p>
 
 <p align="center">
@@ -36,11 +36,6 @@
 1. Install and open Quota Assistant. Codex Desktop must already be signed in on the same computer.
 2. Expand the widget, select **Connect Claude**, and sign in on the official Claude page opened by the app.
 3. Select the calendar button to retrieve subscription information. If the purchase source needs confirmation, sign in only on the official page opened by the app.
-
-<p align="center">
-  <img src="docs/assets/claude-connect.jpg" alt="Connect Claude" width="280">
-  <img src="docs/assets/quota-renewal.jpg" alt="Quota and renewal details" width="280">
-</p>
 
 ## What you can see
 
