@@ -44,7 +44,7 @@ function rejectContradictoryWindowsClaims(file, text) {
       const localEvidence = segment.slice(Math.max(0, match.index - 16), match.index + match[0].length + 36);
       if (/(?:自动构建|manifest|SBOM|SHA-?256|attestation|automated build)/i.test(localEvidence)
         && !behaviors.test(localEvidence)) continue;
-      fail(`${file}: contradictory claim says Windows preview behavior is validated or formally supported`);
+      fail(`${file}: contradictory claim says Windows Beta behavior is validated or formally supported`);
     }
   }
 }
@@ -61,10 +61,7 @@ const head = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdou
 if (head !== commit) fail(`Checked-out commit ${head} does not match requested candidate ${commit}`);
 
 if (releaseTier) {
-  const windowsPreviewCandidate = "a28df7a21a5a84429db81d0770f0cf16f78dc95b";
-  if (version !== "0.2.2" || candidateCommit !== windowsPreviewCandidate) {
-    fail("The Windows preview exception is restricted to v0.2.2 Candidate a28df7a21a5a84429db81d0770f0cf16f78dc95b");
-  }
+  if (!/^[a-f0-9]{40}$/.test(candidateCommit ?? "")) fail("Candidate commit must be an exact lowercase 40-character SHA");
   const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", candidateCommit, commit]);
   if (ancestor.status !== 0) fail("Candidate commit must be an ancestor of the release commit");
   const allowedReleaseDelta = new Set([
@@ -76,7 +73,7 @@ if (releaseTier) {
     "docs/RELEASE-GATES.md",
     "docs/RELEASE.md",
     "docs/TEST-MATRIX.md",
-    "docs/releases/v0.2.2.md",
+    `docs/releases/v${version}.md`,
     "scripts/check-release-governance.mjs",
     "scripts/check-release-governance.selftest.mjs",
     "scripts/release-artifacts.selftest.mjs",
@@ -88,9 +85,6 @@ if (releaseTier) {
   const changed = delta.stdout.trim().split("\n").filter(Boolean);
   const prohibited = changed.filter((file) => !allowedReleaseDelta.has(file));
   if (prohibited.length) fail(`Candidate-to-release delta contains prohibited files: ${prohibited.join(", ")}`);
-  if (!changed.includes("README.md") || !changed.includes("README.en.md") || !changed.includes("docs/releases/v0.2.2.md")) {
-    fail("Windows preview release must include the reviewed bilingual README and v0.2.2 release-note delta");
-  }
 
   const readmeDraftMarkers = {
     "README.md": [/候选/, /尚未发布/, /发布后生效/, /待发布/],
@@ -103,11 +97,11 @@ if (releaseTier) {
     if (markers.some((pattern) => pattern.test(visibleContent))) {
       fail(`${readme} still contains candidate or not-yet-released wording`);
     }
-    const previewRequirements = readme === "README.md"
-      ? ["Windows 预览版", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持", windowsPreviewCandidate]
-      : ["Windows preview", "has not completed real Windows GUI validation", "not listed as validated support", windowsPreviewCandidate];
-    if (previewRequirements.some((required) => !visibleContent.includes(required))) {
-      fail(`${readme} must disclose the exact v0.2.2 Windows preview status and binary source commit`);
+    const betaRequirements = readme === "README.md"
+      ? ["Windows Beta", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持"]
+      : ["Windows Beta", "has not completed real Windows GUI validation", "not listed as validated support"];
+    if (betaRequirements.some((required) => !visibleContent.includes(required))) {
+      fail(`${readme} must disclose the Windows Beta status`);
     }
     rejectContradictoryWindowsClaims(readme, visibleContent);
   }
@@ -153,12 +147,11 @@ if (notes) {
     }
   }
   for (const required of [
-    "Windows preview",
+    "Windows Beta",
     "has not completed real Windows GUI validation",
-    "preview-unvalidated",
-    "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
+    "beta-unvalidated",
   ]) {
-    if (!visibleContent.includes(required)) fail(`Release notes are missing required Windows preview disclosure: ${required}`);
+    if (!visibleContent.includes(required)) fail(`Release notes are missing required Windows Beta disclosure: ${required}`);
   }
   rejectContradictoryWindowsClaims(notes, visibleContent);
 }

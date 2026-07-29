@@ -19,7 +19,7 @@ on:
         required: true
         type: string
       candidate_commit:
-        description: Exact binary-source commit; v0.2.2 Windows preview is restricted to a28df7a21a5a84429db81d0770f0cf16f78dc95b
+        description: Exact binary-source commit from the successful Candidate workflow
         required: true
         type: string
       release_commit:
@@ -30,8 +30,8 @@ on:
         description: SHA-256 from the Windows Candidate manifest; this is not installed-package validation
         required: true
         type: string
-      windows_preview_acknowledgement:
-        description: Enter WINDOWS_V0.2.2_PREVIEW_UNVALIDATED; no Windows GUI or downgrade evidence is claimed
+      windows_beta_acknowledgement:
+        description: Enter WINDOWS_BETA_UNVALIDATED; no Windows GUI or downgrade evidence is claimed
         required: true
         type: string
       macos_sha256:
@@ -152,7 +152,7 @@ jobs:
           CANDIDATE_COMMIT: ${{ inputs.candidate_commit }}
           WINDOWS_SHA256: ${{ inputs.windows_sha256 }}
           RELEASE_COMMIT: ${{ inputs.release_commit }}
-          WINDOWS_PREVIEW_ACKNOWLEDGEMENT: ${{ inputs.windows_preview_acknowledgement }}
+          WINDOWS_BETA_ACKNOWLEDGEMENT: ${{ inputs.windows_beta_acknowledgement }}
           MACOS_SHA256: ${{ inputs.macos_sha256 }}
           MACOS_VALIDATED_AT: ${{ inputs.macos_validated_at }}
           MACOS_EVIDENCE_URL: ${{ inputs.macos_evidence_url }}
@@ -169,7 +169,7 @@ jobs:
             --release-tier "$RELEASE_TIER" \
             --candidate-run-id "${{ inputs.candidate_run_id }}" \
             --windows-sha256 "$WINDOWS_SHA256" \
-            --windows-preview-acknowledgement "$WINDOWS_PREVIEW_ACKNOWLEDGEMENT" \
+            --windows-beta-acknowledgement "$WINDOWS_BETA_ACKNOWLEDGEMENT" \
             --macos-sha256 "$MACOS_SHA256" \
             --macos-validated-at "$MACOS_VALIDATED_AT" \
             --macos-evidence-url "$MACOS_EVIDENCE_URL" \

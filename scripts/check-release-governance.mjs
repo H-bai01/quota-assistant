@@ -42,7 +42,7 @@ function rejectContradictoryWindowsClaims(file, text) {
       const localEvidence = segment.slice(Math.max(0, match.index - 16), match.index + match[0].length + 36);
       if (/(?:自动构建|manifest|SBOM|SHA-?256|attestation|automated build)/i.test(localEvidence)
         && !behaviors.test(localEvidence)) continue;
-      fail(`${file}: contradictory claim says Windows preview behavior is validated or formally supported`);
+      fail(`${file}: contradictory claim says Windows Beta behavior is validated or formally supported`);
     }
   }
 }
@@ -154,7 +154,7 @@ if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must ve
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
 const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
 if (extractNamedFunction(releaseRequestValidator, "rejectContradictoryWindowsClaims") !== rejectContradictoryWindowsClaims.toString()) {
-  fail("Both release gates must use the exact same visible Windows preview contradiction rule");
+  fail("Both release gates must use the exact same visible Windows Beta contradiction rule");
 }
 if (!releaseRequestValidator.includes("readmeDraftMarkers") || !releaseRequestValidator.includes("README.en.md")) {
   fail("validate-release-request.mjs must reject candidate or not-yet-released README wording");
@@ -175,24 +175,24 @@ for (const validator of ["scripts/check-release-governance.mjs", "scripts/valida
     "HTML comment close has no matching open",
     "unclosed HTML comment",
     "rejectContradictoryWindowsClaims",
-    "contradictory claim says Windows preview behavior is validated or formally supported",
+    "contradictory claim says Windows Beta behavior is validated or formally supported",
   ]) {
-    if (!validatorText.includes(required)) fail(`${validator} is missing visible Windows preview claim validation: ${required}`);
+    if (!validatorText.includes(required)) fail(`${validator} is missing visible Windows Beta claim validation: ${required}`);
   }
 }
 for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "macos_rollback_evidence_url"]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
 }
-for (const previewGate of [
+for (const betaGate of [
   "release_commit",
-  "windows_preview_acknowledgement",
-  "WINDOWS_V0.2.2_PREVIEW_UNVALIDATED",
+  "windows_beta_acknowledgement",
+  "WINDOWS_BETA_UNVALIDATED",
   "--candidate-commit",
   "--release-commit",
   'test "$GITHUB_SHA" = "$RELEASE_COMMIT"',
   "git/ref/heads/main",
 ]) {
-  if (!release.includes(previewGate)) fail(`release.yml is missing the v0.2.2 Windows preview gate: ${previewGate}`);
+  if (!release.includes(betaGate)) fail(`release.yml is missing the Windows Beta gate: ${betaGate}`);
 }
 for (const prohibitedWindowsClaimInput of [
   "windows_validated_at",
@@ -200,19 +200,18 @@ for (const prohibitedWindowsClaimInput of [
   "windows_rollback_evidence_url",
 ]) {
   if (release.includes(prohibitedWindowsClaimInput)) {
-    fail(`release.yml must not accept false Windows validation evidence for v0.2.2 preview: ${prohibitedWindowsClaimInput}`);
+    fail(`release.yml must not accept false Windows Beta validation evidence: ${prohibitedWindowsClaimInput}`);
   }
 }
 if (!release.includes('--target "$RELEASE_COMMIT"')) fail("release.yml must tag the reviewed release commit");
 const candidateVerifier = fs.readFileSync(path.join(root, "scripts/verify-release-candidate.mjs"), "utf8");
 for (const required of [
-  "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
-  "preview-unvalidated",
+  "beta-unvalidated",
   "installedPackageGuiValidated: false",
   "releaseCommit",
   "candidateCommit: commit",
 ]) {
-  if (!candidateVerifier.includes(required)) fail(`Candidate verifier is missing the fixed Windows preview boundary: ${required}`);
+  if (!candidateVerifier.includes(required)) fail(`Candidate verifier is missing the Windows Beta boundary: ${required}`);
 }
 for (const prohibited of ["windows-validated-at", "windows-evidence-url", "windows-rollback-evidence-url"]) {
   if (candidateVerifier.includes(prohibited)) fail(`Candidate verifier must not accept Windows real-device claims: ${prohibited}`);
@@ -236,6 +235,15 @@ if (!candidate.includes("actions/attest-build-provenance@")) fail("candidate.yml
 if (!candidate.includes("windows-2022") || !candidate.includes("macos-14")) fail("candidate.yml must use versioned Windows and macOS runners");
 
 const ci = workflowTexts.get("ci.yml") ?? "";
+const governanceStart = ci.indexOf("  governance:\n");
+const governanceTail = governanceStart >= 0 ? ci.slice(governanceStart + "  governance:\n".length) : "";
+const governanceEnd = governanceTail.search(/^  [a-zA-Z0-9_-]+:\s*$/m);
+const governanceJob = governanceStart >= 0
+  ? governanceTail.slice(0, governanceEnd >= 0 ? governanceEnd : undefined)
+  : "";
+if (!/actions\/checkout@[a-f0-9]{40}[\s\S]*?fetch-depth:\s*0/.test(governanceJob)) {
+  fail("ci.yml governance checkout must fetch full history for ancestry validation");
+}
 for (const required of [
   "cargo fmt",
   "cargo clippy",
@@ -320,8 +328,8 @@ for (const readmeName of readmes) {
     fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
   }
   const productName = readmeName === "README.md" ? "额度助手" : "Quota Assistant";
-  if (!visibleContent.includes(`<h1 align="center">${productName} v${packageVersion}</h1>`)) {
-    fail(`${readmeName}: centered title does not match package version ${packageVersion}`);
+  if (!visibleContent.includes(`<h1 align="center">${productName}</h1>`)) {
+    fail(`${readmeName}: centered title is missing`);
   }
   if (!/<p align="center">\s*<img src="src-tauri\/icons\/icon\.png"[^>]*>\s*<\/p>/.test(visibleContent)) {
     fail(`${readmeName}: centered application logo is missing`);
@@ -330,9 +338,8 @@ for (const readmeName of readmes) {
     fail(`${readmeName}: centered language switch is missing`);
   }
   for (const required of [
-    `releases/download/v${packageVersion}/quota-assistant_${packageVersion}_macos_universal.dmg`,
-    `releases/download/v${packageVersion}/quota-assistant_${packageVersion}_windows_x64-setup.exe`,
-    `releases/download/v${packageVersion}/SHA256SUMS.txt`,
+    `quota-assistant_${packageVersion}_macos_universal.dmg`,
+    `quota-assistant_${packageVersion}_windows_x64-setup.exe`,
     "https://github.com/H-bai01/quota-assistant/releases",
     "SHA256SUMS.txt",
   ]) {
@@ -341,11 +348,17 @@ for (const readmeName of readmes) {
   if (!/未签名|unsigned/i.test(content) || !/Gatekeeper/.test(content) || !/SmartScreen/.test(content)) {
     fail(`${readmeName}: unsigned Gatekeeper and SmartScreen risks must be prominent and explicit`);
   }
-  const previewRequirements = readmeName === "README.md"
-    ? ["Windows 预览版", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持", "a28df7a21a5a84429db81d0770f0cf16f78dc95b"]
-    : ["Windows preview", "has not completed real Windows GUI validation", "not listed as validated support", "a28df7a21a5a84429db81d0770f0cf16f78dc95b"];
-  for (const required of previewRequirements) {
-    if (!visibleContent.includes(required)) fail(`${readmeName}: missing Windows preview disclosure: ${required}`);
+  const releaseAssetRequirements = readmeName === "README.md"
+    ? ["Release assets", "Packages", "为空是正常的"]
+    : ["Release assets", "Packages", "empty", "normal"];
+  for (const required of releaseAssetRequirements) {
+    if (!visibleContent.includes(required)) fail(`${readmeName}: missing GitHub Release assets or Packages explanation: ${required}`);
+  }
+  const betaRequirements = readmeName === "README.md"
+    ? ["Windows Beta", "尚未完成 Windows 实机 GUI 验收", "不列为已验证支持"]
+    : ["Windows Beta", "has not completed real Windows GUI validation", "not listed as validated support"];
+  for (const required of betaRequirements) {
+    if (!visibleContent.includes(required)) fail(`${readmeName}: missing Windows Beta disclosure: ${required}`);
   }
   rejectContradictoryWindowsClaims(readmeName, visibleContent);
   const localImages = [...new Set([
@@ -371,12 +384,11 @@ const releaseNotesName = `docs/releases/v${packageVersion}.md`;
 const releaseNotes = fs.readFileSync(path.join(root, releaseNotesName), "utf8");
 const visibleReleaseNotes = visibleHtmlWithoutComments(releaseNotesName, releaseNotes);
 for (const required of [
-  "Windows preview",
+  "Windows Beta",
   "has not completed real Windows GUI validation",
-  "preview-unvalidated",
-  "a28df7a21a5a84429db81d0770f0cf16f78dc95b",
+  "beta-unvalidated",
 ]) {
-  if (!visibleReleaseNotes.includes(required)) fail(`v${packageVersion} release notes are missing Windows preview disclosure: ${required}`);
+  if (!visibleReleaseNotes.includes(required)) fail(`v${packageVersion} release notes are missing Windows Beta disclosure: ${required}`);
 }
 rejectContradictoryWindowsClaims(releaseNotesName, visibleReleaseNotes);
 if (!fs.readFileSync(path.join(root, "README.md"), "utf8").includes('<a href="README.en.md">English</a>')) fail("README.md must link to README.en.md");

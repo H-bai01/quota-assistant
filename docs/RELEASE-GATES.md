@@ -33,17 +33,17 @@
 
 正式发布工作流把经审批的最小字段写入 `release-gates.json`，并将该文件作为 Release 附件。任一 SHA 不匹配、日期超过 30 天、URL 非 HTTPS、候选 run 失败或源提交不一致时，工作流关闭失败。
 
-v0.2.2 的 Windows 附件是固定 Candidate `a28df7a21a5a84429db81d0770f0cf16f78dc95b` 的未验收预览版，不伪造上述实机记录。其发布门记录必须包含：
+Windows Beta 不伪造上述实机记录。其发布门记录必须包含：
 
 ```json
 {
   "platform": "windows",
-  "conclusion": "preview-unvalidated",
+  "conclusion": "beta-unvalidated",
   "installedPackageGuiValidated": false,
   "evidenceUrl": null,
   "rollback": {
     "available": false,
-    "reason": "preview-unvalidated"
+    "reason": "beta-unvalidated"
   }
 }
 ```

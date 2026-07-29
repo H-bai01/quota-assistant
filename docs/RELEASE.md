@@ -6,10 +6,10 @@
 
 | 等级 | 允许的签名状态 | 必须通过 | 对外表述 |
 | --- | --- | --- | --- |
-| GitHub 开源社区版（`community`） | 允许 `signed: false` | 自动测试、生产构建、依赖与许可证审计、SBOM、attestation、精确附件、SHA-256、已验证平台的实机门，以及未签名/预览风险披露 | 可作为 GitHub Release；必须醒目标明未签名/未公证，未实机验收的平台只能标为预览版 |
+| GitHub 开源社区版（`community`） | 允许 `signed: false` | 自动测试、生产构建、依赖与许可证审计、SBOM、attestation、精确附件、SHA-256、已验证平台的实机门，以及未签名/Beta 风险披露 | 可作为 GitHub Release；必须醒目标明未签名/未公证，未实机验收的 Windows 只能标为 Beta |
 | 未来正式签名发行版（当前未启用） | 两个平台必须完成真实签名验证 | 社区版全部门槛，以及 macOS Developer ID + notarization、Windows Authenticode 的工具级验证与证据 | 只有验证链完成后才能在工作流中开放此等级 |
 
-缺少签名不再自动阻断 `community`，但缺少风险披露、`SHA256SUMS.txt`、测试、构建、完整附件、来源证明或版本一致性仍然阻断。已列为正式验证的平台必须具备实机证据；未取得实机证据的平台只有在用户明确决定、下载区与 Release notes 全面标注为“预览版 / 未验收”、且发布记录关闭失败地写入 `preview-unvalidated` 时才可附带，不能宣称正式支持。当前发布工作流只开放 `community`；manifest 中的布尔字段不能代替 `codesign`、Apple 公证或 Authenticode 的真实验证，因此不得选择或宣称签名发行版。
+缺少签名不再自动阻断 `community`，但缺少风险披露、`SHA256SUMS.txt`、测试、构建、完整附件、来源证明或版本一致性仍然阻断。已列为正式验证的平台必须具备实机证据；Windows 未取得实机证据时，只有在用户明确决定、下载区与 Release notes 全面标注为“Windows Beta / 未验收”、且发布记录关闭失败地写入 `beta-unvalidated` 时才可附带，不能宣称正式支持。当前发布工作流只开放 `community`；manifest 中的布尔字段不能代替 `codesign`、Apple 公证或 Authenticode 的真实验证，因此不得选择或宣称签名发行版。
 
 ## 阶段一：生成候选包
 
@@ -42,7 +42,7 @@
 - `passed` 或 `failed` 结论；
 - 不含用户数据、凭据或个人路径的持久 HTTPS 证据地址。
 
-发布工作流只接受 30 天内、无 userinfo 的 HTTPS 实机证据，并要求实机记录的 SHA-256 与候选包完全一致。v0.2.2 的 Windows 附件是一次性、固定 Candidate 提交的预览例外：不接收或生成 Windows 实机证据，必须记录为 `preview-unvalidated`；macOS 实机门不受影响。
+发布工作流只接受 30 天内、无 userinfo 的 HTTPS 实机证据，并要求实机记录的 SHA-256 与候选包完全一致。Windows Beta 不接收或生成 Windows 实机证据，必须记录为 `beta-unvalidated`；macOS 实机门不受影响。
 
 推荐记录结构见 [RELEASE-GATES.md](RELEASE-GATES.md)。
 
@@ -53,8 +53,8 @@
 管理员手动运行发布工作流，输入：
 
 - 版本、当前唯一可用的 `community` 发行等级、候选 run ID 和候选提交；
-- Windows 候选文件 SHA、明确的 v0.2.2 预览确认，以及 macOS 实机安装文件 SHA、验收时间和证据 URL；
-- 上一公共 Release 标签和 macOS 实际降级证据（首个公共版本固定填 `none`）；Windows 预览版明确记录为未验证降级；
+- Windows 候选文件 SHA、明确的 Windows Beta 确认，以及 macOS 实机安装文件 SHA、验收时间和证据 URL；
+- 上一公共 Release 标签和 macOS 实际降级证据（首个公共版本固定填 `none`）；Windows Beta 明确记录为未验证降级；
 - `docs/releases/` 下已审阅的版本说明。
 
 单一发布 job 将：
@@ -64,7 +64,7 @@
 3. 下载两个平台候选附件；
 4. 检查精确文件集合、manifest、所选发行等级、Windows 候选 SHA、macOS 实机 SHA 与 attestation；
 5. 从公共地址下载上一 Release 的安装包和校验文件并完成校验（首版除外）；
-6. 自动生成包含 macOS 实机结论、Windows `preview-unvalidated` 状态与逐平台回退记录的 `release-gates.json` 和 `SHA256SUMS.txt`；
+6. 自动生成包含 macOS 实机结论、Windows `beta-unvalidated` 状态与逐平台回退记录的 `release-gates.json` 和 `SHA256SUMS.txt`；
 7. 使用一条 `gh release create` 命令创建一次正式 Release。
 
 发布工作流不会更新、删除或覆盖已有标签和 Release。已有同名版本时必须失败并停止。
@@ -80,11 +80,11 @@
 3. 记录降级后的冷启动和核心功能证据；
 4. 在本次 Release notes 写清实际可回退版本及数据兼容限制。
 
-后续新版本完成上述检查后，`v0.2.1` 才能成为对应平台的真实公共回退点。v0.2.2 的 macOS 已完成该门；Windows 预览版明确不宣称存在已验证回退路径。
+后续新版本完成上述检查后，上一公共版本才能成为对应平台的真实公共回退点。Windows Beta 明确不宣称存在已验证回退路径。
 
-## v0.2.2 Windows 预览例外
+## Windows Beta 例外
 
-本例外只适用于二进制 Candidate 源提交 `a28df7a21a5a84429db81d0770f0cf16f78dc95b` 和版本 v0.2.2，不自动扩展到后续版本。最终 Release 提交只能在该 Candidate 的后代上，且差异严格限制为经审阅的中英文 README、v0.2.2 Release notes、发布治理文档、测试和工作流；产品源码、Tauri/Cargo/package 配置、锁文件、版本或资产有任何变化都关闭失败并要求生成新 Candidate。
+本例外仅表示 Windows 附件可以在明确披露未完成实机 GUI 验收的前提下作为 Beta 随版本发布。最终 Release 提交必须是精确 Candidate 或其仅含发布文档与治理修改的后代；产品源码、Tauri/Cargo/package 配置、锁文件、版本或资产有任何变化都关闭失败并要求生成新 Candidate。
 
 ## 签名与风险披露边界
 

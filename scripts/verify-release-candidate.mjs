@@ -42,7 +42,7 @@ const commit = argument("commit");
 const releaseCommit = argument("release-commit");
 const candidateRunId = argument("candidate-run-id");
 const releaseTier = argument("release-tier");
-const windowsPreviewAcknowledgement = argument("windows-preview-acknowledgement");
+const windowsBetaAcknowledgement = argument("windows-beta-acknowledgement");
 const previousReleaseTag = argument("previous-release-tag");
 const macosRollbackEvidenceUrl = argument("macos-rollback-evidence-url");
 if (!input || !output) fail("--input and --output are required");
@@ -51,11 +51,8 @@ if (!/^[a-f0-9]{40}$/.test(commit ?? "")) fail("Invalid candidate commit");
 if (!/^[a-f0-9]{40}$/.test(releaseCommit ?? "")) fail("Invalid release commit");
 if (!/^\d+$/.test(candidateRunId ?? "")) fail("Invalid candidate workflow run ID");
 if (releaseTier !== "community") fail("Only the GitHub community release tier is currently enabled");
-if (version !== "0.2.2" || commit !== "a28df7a21a5a84429db81d0770f0cf16f78dc95b") {
-  fail("The Windows preview exception is restricted to v0.2.2 Candidate a28df7a21a5a84429db81d0770f0cf16f78dc95b");
-}
-if (windowsPreviewAcknowledgement !== "WINDOWS_V0.2.2_PREVIEW_UNVALIDATED") {
-  fail("The exact Windows v0.2.2 preview acknowledgement is required");
+if (windowsBetaAcknowledgement !== "WINDOWS_BETA_UNVALIDATED") {
+  fail("The exact Windows Beta acknowledgement is required");
 }
 if (version === "0.2.1") {
   if (previousReleaseTag !== "none" || macosRollbackEvidenceUrl !== "none") {
@@ -125,7 +122,7 @@ const gateRecord = {
   candidateCommit: commit,
   candidateWorkflowRunId: Number(candidateRunId),
   releaseTier,
-  conclusion: "passed-with-windows-preview",
+  conclusion: "passed-with-windows-beta",
   rollback: version === "0.2.1" ? {
     available: false,
     reason: "first-public-release",
@@ -134,7 +131,7 @@ const gateRecord = {
     platforms: {
       windows: {
         available: false,
-        reason: "preview-unvalidated",
+        reason: "beta-unvalidated",
       },
       macos: {
         available: true,
@@ -146,7 +143,7 @@ const gateRecord = {
     windows: {
       artifact: expected.windows.package,
       sha256: expected.windows.sha256,
-      conclusion: "preview-unvalidated",
+      conclusion: "beta-unvalidated",
       installedPackageGuiValidated: false,
       evidenceUrl: null,
     },
@@ -164,4 +161,4 @@ await fs.writeFile(path.join(output, "release-gates.json"), `${JSON.stringify(ga
 const checksums = [];
 for (const name of (await fs.readdir(output)).sort()) checksums.push(`${await digest(path.join(output, name))}  ${name}`);
 await fs.writeFile(path.join(output, "SHA256SUMS.txt"), `${checksums.join("\n")}\n`, { flag: "wx" });
-console.log(`Candidate v${version} passed artifact integrity and macOS evidence gates; Windows is recorded as preview-unvalidated.`);
+console.log(`Candidate v${version} passed artifact integrity and macOS evidence gates; Windows is recorded as beta-unvalidated.`);

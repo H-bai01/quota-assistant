@@ -28,7 +28,7 @@
 
 ## 实机验收
 
-- [ ] Windows v0.2.2 明确标为预览版，并记录 `preview-unvalidated`；不得提交或暗示安装、GUI、退出、卸载或降级证据。
+- [ ] Windows 明确标为 Beta，并记录 `beta-unvalidated`；不得提交或暗示安装、GUI、退出、卸载或降级证据。
 - [ ] macOS 使用同一候选 run 中的实际 DMG，完成安装、冷启动、核心流程、退出和卸载。
 - [ ] macOS 记录安装文件 SHA-256、UTC 日期、passed 结论和持久 HTTPS 证据；Windows 只记录与 manifest 一致的候选 SHA-256。
 - [ ] 证据中没有用户数据、令牌、Cookie、邮箱、个人路径或其他敏感信息。
@@ -38,12 +38,12 @@
 
 - [ ] 首个公共版本明确写“无上一公共回退点”。
 - [ ] 第二个公共版本起，上一 Release、安装包与校验文件仍可公开下载且校验通过。
-- [ ] 第二个公共版本起，所有声明为已验证支持的平台实际完成本次候选到上一正式版的降级恢复；Windows v0.2.2 预览版明确写未验证降级。
+- [ ] 第二个公共版本起，所有声明为已验证支持的平台实际完成本次候选到上一正式版的降级恢复；Windows Beta 明确写未验证降级。
 - [ ] Release notes 写明可回退版本和数据兼容限制。
 
 ## 正式发布
 
-- [ ] 手动运行 `Publish approved release`，完整输入候选、Windows v0.2.2 预览确认和 macOS 实机证据。
+- [ ] 手动运行 `Publish approved release`，完整输入候选、Windows Beta 确认和 macOS 实机证据。
 - [ ] `production-release` 独立审批人复核后批准。
 - [ ] 发布 job 核对候选 run、提交、版本、manifest、SHA、SBOM 和 attestation。
 - [ ] 最终发布提交是 Candidate 的后代，差异仅包含明确 allowlist 中的发布说明与治理文件。
