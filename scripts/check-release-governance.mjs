@@ -151,6 +151,13 @@ if (!release.includes("workflow_dispatch:")) fail("release.yml must be manually 
 if (/\bpush\s*:|\btags\s*:/.test(release)) fail("release.yml must not publish from push or tag events");
 if (!release.includes("actions/download-artifact@")) fail("release.yml must download previously built candidates");
 if (!release.includes("verify-release-candidate.mjs")) fail("release.yml must verify candidate artifacts and required platform evidence");
+if (!release.includes('gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs"')
+  || !release.includes('-f branch=main')
+  || !release.includes('-f event=push')
+  || !release.includes('-f head_sha="$RELEASE_COMMIT"')
+  || !release.includes('verify-main-ci.mjs --commit "$RELEASE_COMMIT"')) {
+  fail("release.yml must verify completed/success main CI for the exact release commit");
+}
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
 const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
 if (extractNamedFunction(releaseRequestValidator, "rejectContradictoryWindowsClaims") !== rejectContradictoryWindowsClaims.toString()) {
@@ -191,6 +198,7 @@ for (const betaGate of [
   "--release-commit",
   'test "$GITHUB_SHA" = "$RELEASE_COMMIT"',
   "git/ref/heads/main",
+  "verify-main-ci.mjs",
 ]) {
   if (!release.includes(betaGate)) fail(`release.yml is missing the Windows Beta gate: ${betaGate}`);
 }
@@ -235,6 +243,9 @@ if (!candidate.includes("actions/attest-build-provenance@")) fail("candidate.yml
 if (!candidate.includes("windows-2022") || !candidate.includes("macos-14")) fail("candidate.yml must use versioned Windows and macOS runners");
 
 const ci = workflowTexts.get("ci.yml") ?? "";
+if (!ci.includes("node scripts/verify-main-ci.selftest.mjs")) {
+  fail("ci.yml must run the deterministic main CI release gate self-test");
+}
 const governanceStart = ci.indexOf("  governance:\n");
 const governanceTail = governanceStart >= 0 ? ci.slice(governanceStart + "  governance:\n".length) : "";
 const governanceEnd = governanceTail.search(/^  [a-zA-Z0-9_-]+:\s*$/m);
@@ -328,7 +339,7 @@ for (const readmeName of readmes) {
     fail(`${readmeName}: candidate or not-yet-released README wording is prohibited`);
   }
   const productName = readmeName === "README.md" ? "额度助手" : "Quota Assistant";
-  if (!visibleContent.includes(`<h1 align="center">${productName}</h1>`)) {
+  if (!visibleContent.includes(`<h1 align="center">${productName} v${packageVersion}</h1>`)) {
     fail(`${readmeName}: centered title is missing`);
   }
   if (!/<p align="center">\s*<img src="src-tauri\/icons\/icon\.png"[^>]*>\s*<\/p>/.test(visibleContent)) {

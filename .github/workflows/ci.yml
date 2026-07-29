@@ -37,6 +37,7 @@ jobs:
       - run: node scripts/check-release-governance.mjs
       - run: node scripts/check-release-governance.selftest.mjs
       - run: node scripts/release-artifacts.selftest.mjs
+      - run: node scripts/verify-main-ci.selftest.mjs
 
   frontend:
     name: Frontend tests, build, audit and licenses

@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="88" height="88">
+  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="96" height="96">
 </p>
-<h1 align="center">额度助手</h1>
+<h1 align="center">额度助手 v0.2.4</h1>
 <p align="center">
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
@@ -9,77 +9,91 @@
   <a href="https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml"><img src="https://github.com/H-bai01/quota-assistant/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/H-bai01/quota-assistant/releases"><img src="https://img.shields.io/github/v/release/H-bai01/quota-assistant?display_name=tag" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/macOS-unsigned-orange" alt="macOS unsigned">
+  <img src="https://img.shields.io/badge/macOS-supported-blue" alt="macOS supported">
   <img src="https://img.shields.io/badge/Windows-Beta-orange" alt="Windows Beta">
 </p>
 
-<p align="center">在一个桌面悬浮窗中查看 Codex 与 Claude 的剩余额度、重置时间和订阅续期日期。</p>
+<p align="center"><strong>在一个悬浮窗里看清 AI 工具额度、重置时间和订阅周期。</strong></p>
+<p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="Codex 与 Claude 双服务额度总览" width="560">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" width="560">
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/H-bai01/quota-assistant/releases">前往 GitHub Releases 下载</a></strong><br>
-  macOS DMG · Windows Beta EXE · SHA256SUMS.txt
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">下载 macOS 版</a></strong>
+  &nbsp;·&nbsp;
+  <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_windows_x64-setup.exe">下载 Windows Beta</a></strong>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/SHA256SUMS.txt">SHA-256 校验</a>
 </p>
+<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.4">查看 v0.2.4 版本说明与全部附件</a></p>
 
-> 安装包位于 GitHub **Release assets**；仓库右侧 **Packages** 为空是正常的。v0.2.3 使用以下安装包文件名：`quota-assistant_0.2.3_macos_universal.dmg` 和 `quota-assistant_0.2.3_windows_x64-setup.exe`。请在对应 Release 中下载。
+> 安装包发布在 GitHub **Release assets** 中；仓库右侧的 **Packages** 是另一种软件包服务，本项目没有使用，因此显示为空是正常的。社区版未签名，首次打开时可能看到 Gatekeeper 或 SmartScreen 来源确认提示。
 
 ## 三步开始使用
 
-1. 下载并安装对应平台的额度助手，保持本机 Codex Desktop 已登录。
+1. 安装并打开额度助手；Codex Desktop 需已在同一台电脑登录。
 2. 展开悬浮窗，点击“连接 Claude”，在应用打开的 Claude 官方页面完成登录。
-3. 点击日历按钮获取订阅信息；需要 Apple 确认时，只在 Apple 官方页面登录。
+3. 点击日历按钮获取订阅信息；若需要确认购买来源，只在应用打开的官方页面登录。
 
 <p align="center">
-  <img src="docs/assets/claude-connect.jpg" alt="Claude 连接入口" width="280">
+  <img src="docs/assets/claude-connect.jpg" alt="连接 Claude" width="280">
   <img src="docs/assets/quota-renewal.jpg" alt="额度与续期信息" width="280">
 </p>
 
-## 主要功能
+## 你可以看到什么
 
-- **双服务总览**：查看 Codex 周额度、Claude 5 小时/周额度与重置时间。
-- **订阅信息**：展示购买来源、周期和已确认的续期日期，到期前 1 天复核。
-- **悬浮窗**：支持紧凑/展开、拖动、置顶和鼠标穿透锁定。
+- **剩余额度**：当前支持 Codex 周额度，以及 Claude 5 小时与周额度。
+- **重置时间**：直接显示下一次额度恢复时间和可用重置机会。
+- **订阅周期**：展示购买来源、续期日期，并在到期前 1 天复核。
+- **桌面悬浮窗**：紧凑/展开、拖动、置顶、锁定与鼠标穿透。
 - **菜单栏/托盘**：显示、隐藏、刷新、切换语言、解锁和退出。
-- **本地诊断**：默认关闭；仅在数据抓取失败且用户主动同意后运行，摘要不含令牌、Cookie、邮箱和完整个人路径。
 
-<p align="center">
-  <img src="docs/assets/macos-compact-real.jpg" alt="紧凑悬浮窗" width="180">
-</p>
+## 平台状态
 
-## 安装、安全与隐私
+| 平台 | 下载 | 当前状态 |
+|---|---|---|
+| macOS | Universal DMG | 主要支持平台，发布前使用对应安装包完成实机验收 |
+| Windows | x64 EXE | Windows Beta；尚未完成 Windows 实机 GUI 验收，不列为已验证支持 |
 
-GitHub 社区版尚未使用 macOS Developer ID/Apple 公证或 Windows Authenticode 签名，系统可能显示 Gatekeeper、SmartScreen 或“未知发布者”提示。只从本仓库 Releases 下载，先用同一 Release 中的 `SHA256SUMS.txt` 核对文件，再继续安装。
+Windows Beta 会保留自动构建、SHA-256、manifest、SBOM 和 attestation 记录，但这些记录不能代替 Windows 实机使用验收。
 
-额度助手无遥测、广告或第三方跟踪。Codex 令牌仅在 Rust 后端内存中访问固定官方接口；Claude Cookie 由应用自己的系统 WebView 保管；Apple 页面只交付服务名、套餐、状态和续期日期等最少字段。详见 [PRIVACY.md](PRIVACY.md) 与 [SECURITY.md](SECURITY.md)。
+## 安装说明
 
 ### macOS
 
-1. 下载 DMG 和 `SHA256SUMS.txt`，核对后将“额度助手”拖入“应用程序”。
-2. 若 Gatekeeper 拦截，在确认来源和 SHA-256 后右键应用选择“打开”，或查看“系统设置 → 隐私与安全性”。
+1. 下载 DMG，把“额度助手”拖入“应用程序”。
+2. 当前 GitHub 社区版未使用 Apple 开发者签名。首次打开若被系统拦截，请确认下载地址来自本仓库，再右键应用选择“打开”，或前往“系统设置 → 隐私与安全性”允许打开。
 
-<p align="center"><img src="docs/assets/macos-install-dmg.jpg" alt="macOS DMG 安装窗口" width="520"></p>
+<p align="center"><img src="docs/assets/macos-install-dmg.jpg" alt="macOS 安装窗口" width="520"></p>
 
 ### Windows Beta
 
-1. 下载 EXE 和 `SHA256SUMS.txt`，核对后运行安装包。
-2. 每次 Windows Beta 发布都必须包含自动构建、SHA-256、manifest、SBOM 和 attestation 资料；尚未完成 Windows 实机 GUI 验收，不列为已验证支持。
+下载 EXE 后按安装向导操作。当前安装包未使用 Windows 代码签名，SmartScreen 可能显示“未知发布者”；请确认下载地址来自本仓库，并用同一版本的 `SHA256SUMS.txt` 核对文件。
+
+## 数据与隐私
+
+- 额度和订阅摘要保存在本机，不包含密码、验证码或登录 Cookie。
+- 没有广告、遥测或第三方跟踪。
+- 需要登录时，只使用应用打开的 Codex、Claude、Apple 或 Google 官方页面。
+- 环境诊断默认关闭；仅在数据抓取失败、用户主动同意后运行最少检查。
+
+完整说明见 [隐私说明](PRIVACY.md) 与 [安全说明](SECURITY.md)。
 
 ## 常见问题
 
-### Codex 有数据，Claude 仍显示未连接
+### Codex 有数据，Claude 显示未连接
 
-Codex 读取本机 Codex 登录状态；Claude 使用额度助手内的隔离会话。请点击“连接 Claude”。
+Codex 使用本机已有登录状态；Claude 使用额度助手内的独立会话。点击“连接 Claude”完成一次登录即可。
 
-### 登录完成后仍提示登录
+### 登录后仍提示登录
 
-关闭登录窗口后重试“获取订阅信息”。认证失败或窗口关闭后，程序会停止等待并允许重试。
+关闭登录窗口，重新点击“获取订阅信息”。若会话失效，应用会提示再次登录，不会无限等待。
 
 ### 如何更新或卸载
 
-当前没有自动更新通道，请从 [GitHub Releases](https://github.com/H-bai01/quota-assistant/releases) 下载新版本。卸载前先退出并关闭开机启动；普通卸载不会自动删除偏好和 WebView 会话，彻底清除前请阅读 [PRIVACY.md](PRIVACY.md)。
+从 [GitHub Releases](https://github.com/H-bai01/quota-assistant/releases) 下载新版本并覆盖安装。卸载前先退出应用；如需同时清除本地偏好和登录会话，请按照 [隐私说明](PRIVACY.md) 操作。
 
 ## 开发与贡献
 
@@ -92,10 +106,10 @@ npm run build
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 ```
 
-参与开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)、[发布流程](docs/RELEASE.md)、[测试矩阵](docs/TEST-MATRIX.md) 和 [公开文件边界](docs/PUBLIC-REPOSITORY-BOUNDARY.md)。
+参与开发请阅读 [贡献指南](CONTRIBUTING.md)。发布与维护资料位于 [docs](docs/)。
 
 ## 来源、许可与支持
 
-本项目基于 MIT 许可的 [Quota Float](https://github.com/change-42-yhmm/quota-float) 开发，源码使用 [MIT License](LICENSE)。资产来源与商标说明见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。本项目不是 OpenAI 或 Anthropic 的官方产品，也未获得其背书。
+本项目基于 MIT 许可的 [Quota Float](https://github.com/change-42-yhmm/quota-float) 开发，并使用 [MIT License](LICENSE) 发布。资产与商标说明见 [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md)。本项目不是 OpenAI、Anthropic 或 Apple 的官方产品。
 
-已知限制见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)，版本记录见 [docs/releases/](docs/releases/README.md)，普通问题请使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)。
+遇到普通问题或有功能建议，请使用 [GitHub Issues](https://github.com/H-bai01/quota-assistant/issues)。已知限制见 [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md)。

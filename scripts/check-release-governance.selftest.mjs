@@ -71,6 +71,18 @@ try {
     await fs.appendFile(file, "\n# gh release create prohibited-second-publisher\n");
   }, /Exactly one release creation command/);
 
+  await expectRejected("missing-exact-main-ci-release-gate", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace("verify-main-ci.mjs --commit", "skipped-main-ci.mjs --commit"));
+  }, /must verify completed\/success main CI for the exact release commit/);
+
+  await expectRejected("missing-main-ci-selftest", async (directory) => {
+    const file = path.join(directory, ".github/workflows/ci.yml");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace("node scripts/verify-main-ci.selftest.mjs", "echo skipped-main-ci-selftest"));
+  }, /must run the deterministic main CI release gate self-test/);
+
   await expectRejected("mutable-runner", async (directory) => {
     const file = path.join(directory, ".github/workflows/ci.yml");
     const text = await fs.readFile(file, "utf8");
@@ -199,7 +211,7 @@ try {
   await expectRejected("readme-commented-centered-title", async (directory) => {
     const file = path.join(directory, "README.md");
     const text = await fs.readFile(file, "utf8");
-    const centered = '<h1 align="center">额度助手</h1>';
+    const centered = `<h1 align="center">额度助手 v${packageVersion}</h1>`;
     const visibleLeft = centered.replace("center", "left");
     await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
   }, /centered title/);
@@ -207,7 +219,7 @@ try {
   await expectRejected("readme-commented-centered-logo", async (directory) => {
     const file = path.join(directory, "README.md");
     const text = await fs.readFile(file, "utf8");
-    const centered = '<p align="center">\n  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="88" height="88">\n</p>';
+    const centered = '<p align="center">\n  <img src="src-tauri/icons/icon.png" alt="额度助手 Logo" width="96" height="96">\n</p>';
     const visibleLeft = centered.replace("center", "left");
     await fs.writeFile(file, text.replace(centered, `<!-- ${centered} -->\n${visibleLeft}`));
   }, /centered application logo/);
@@ -248,7 +260,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (36/36).");
+  console.log("Release governance adversarial tests passed (38/38).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

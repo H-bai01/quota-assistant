@@ -122,6 +122,17 @@ jobs:
             echo "Refusing to reuse or replace existing Release v$VERSION" >&2
             exit 1
           fi
+      - name: Verify exact release commit main CI completed successfully
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+        run: >-
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs"
+          -f branch=main
+          -f event=push
+          -f head_sha="$RELEASE_COMMIT"
+          -f per_page=100
+          | node scripts/verify-main-ci.mjs --commit "$RELEASE_COMMIT"
       - name: Verify previous public release and downgrade gate
         env:
           GH_TOKEN: ${{ github.token }}

@@ -9,10 +9,10 @@ Do not paste tokens, account IDs, raw backend responses, local auth paths, or sc
 ## Development
 
 ```bash
-npm install
-npm run test
-cargo test --manifest-path src-tauri/Cargo.toml
+npm ci
+npm test
 npm run build
+cargo test --manifest-path src-tauri/Cargo.toml --locked
 ```
 
 Use `npm run tauri dev` for desktop testing. Browser preview uses mock data and cannot verify real quota reads.
@@ -23,3 +23,4 @@ Use `npm run tauri dev` for desktop testing. Browser preview uses mock data and 
 - Preserve the privacy boundary documented in `PRIVACY.md`.
 - Do not add telemetry or raw response logging.
 - Add or update tests when changing quota parsing, snapshot merging, or formatting.
+- Keep README claims aligned with the behavior and platform evidence that actually exists.
