@@ -24,7 +24,7 @@
   macOS DMG · Windows Beta EXE · SHA256SUMS.txt
 </p>
 
-> Installers are published as GitHub **Release assets**; an empty **Packages** section in the repository is normal. The v0.2.3 Release assets include `quota-assistant_0.2.3_macos_universal.dmg` and `quota-assistant_0.2.3_windows_x64-setup.exe`. Download them from the corresponding Release.
+> Installers are published as GitHub **Release assets**; an empty **Packages** section in the repository is normal. The v0.2.3 installer filenames are `quota-assistant_0.2.3_macos_universal.dmg` and `quota-assistant_0.2.3_windows_x64-setup.exe`. Download them from the corresponding Release.
 
 ## First use in three steps
 

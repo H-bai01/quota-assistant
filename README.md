@@ -24,7 +24,7 @@
   macOS DMG · Windows Beta EXE · SHA256SUMS.txt
 </p>
 
-> 安装包位于 GitHub **Release assets**；仓库右侧 **Packages** 为空是正常的。v0.2.3 Release 附件包括 `quota-assistant_0.2.3_macos_universal.dmg` 和 `quota-assistant_0.2.3_windows_x64-setup.exe`，请在对应 Release 中下载。
+> 安装包位于 GitHub **Release assets**；仓库右侧 **Packages** 为空是正常的。v0.2.3 使用以下安装包文件名：`quota-assistant_0.2.3_macos_universal.dmg` 和 `quota-assistant_0.2.3_windows_x64-setup.exe`。请在对应 Release 中下载。
 
 ## 三步开始使用
 
