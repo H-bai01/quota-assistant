@@ -16,18 +16,9 @@
 <p align="center"><strong>See AI quota, reset times, and subscription cycles in one floating widget.</strong></p>
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/assets/macos-compact-real.jpg" alt="Compact Quota Assistant widget" height="176"></td>
-    <td align="center"><img src="docs/assets/macos-expanded-real.jpg" alt="Expanded Quota Assistant widget" height="176"></td>
-    <td align="center"><img src="docs/assets/diagnostics.jpg" alt="Quota Assistant environment diagnostics" height="176"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Compact widget</strong></td>
-    <td align="center"><strong>Quota and subscription overview</strong></td>
-    <td align="center"><strong>On-demand diagnostics</strong></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="Quota and subscription overview" width="320">
+</p>
 
 <p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">Download for macOS</a></strong>
@@ -51,8 +42,13 @@
 - **Remaining quota:** Codex weekly quota and Claude five-hour/weekly quota.
 - **Reset time:** the next quota reset and available reset opportunities.
 - **Subscription cycle:** purchase source and renewal date, rechecked one day before renewal.
-- **Floating widget:** compact/expanded modes, drag, always-on-top, lock, and click-through.
+- **Floating widget:** mini/expanded modes, drag, always-on-top, lock, and click-through.
 - **Menu bar/system tray:** show, hide, refresh, switch language, unlock, and quit.
+
+<p align="center">
+  <img src="docs/assets/macos-compact-real.jpg" alt="Quota Assistant Mini widget" width="180"><br>
+  <strong>Mini widget</strong>
+</p>
 
 ## Platform status
 
@@ -94,6 +90,15 @@ Codex uses the existing local sign-in. Claude uses a separate Quota Assistant se
 ### The app still asks me to sign in
 
 Close the sign-in window and retry **Get subscription info**. If the session has expired, the app asks you to sign in again instead of waiting indefinitely.
+
+### How do I check a data-fetch failure?
+
+Environment diagnostics are off by default. The app runs only the minimum checks related to the current failure, and only after you agree.
+
+<p align="center">
+  <img src="docs/assets/diagnostics.jpg" alt="Quota Assistant on-demand diagnostics" width="320"><br>
+  <strong>On-demand diagnostics</strong>
+</p>
 
 ### How do I update or uninstall?
 

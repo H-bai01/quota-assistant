@@ -16,18 +16,9 @@
 <p align="center"><strong>在一个悬浮窗里看清 AI 工具额度、重置时间和订阅周期。</strong></p>
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/assets/macos-compact-real.jpg" alt="额度助手紧凑悬浮窗" height="176"></td>
-    <td align="center"><img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开界面" height="176"></td>
-    <td align="center"><img src="docs/assets/diagnostics.jpg" alt="额度助手环境诊断" height="176"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>紧凑悬浮窗</strong></td>
-    <td align="center"><strong>额度与订阅总览</strong></td>
-    <td align="center"><strong>按需环境诊断</strong></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="额度与订阅总览" width="320">
+</p>
 
 <p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">下载 macOS 版</a></strong>
@@ -51,8 +42,13 @@
 - **剩余额度**：当前支持 Codex 周额度，以及 Claude 5 小时与周额度。
 - **重置时间**：直接显示下一次额度恢复时间和可用重置机会。
 - **订阅周期**：展示购买来源、续期日期，并在到期前 1 天复核。
-- **桌面悬浮窗**：紧凑/展开、拖动、置顶、锁定与鼠标穿透。
+- **桌面悬浮窗**：迷你/展开、拖动、置顶、锁定与鼠标穿透。
 - **菜单栏/托盘**：显示、隐藏、刷新、切换语言、解锁和退出。
+
+<p align="center">
+  <img src="docs/assets/macos-compact-real.jpg" alt="额度助手迷你浮窗" width="180"><br>
+  <strong>迷你浮窗</strong>
+</p>
 
 ## 平台状态
 
@@ -94,6 +90,15 @@ Codex 使用本机已有登录状态；Claude 使用额度助手内的独立会�
 ### 登录后仍提示登录
 
 关闭登录窗口，重新点击“获取订阅信息”。若会话失效，应用会提示再次登录，不会无限等待。
+
+### 数据抓取失败时如何检查
+
+环境诊断默认关闭。只有数据抓取失败且你同意后，应用才会运行与本次失败有关的最少检查。
+
+<p align="center">
+  <img src="docs/assets/diagnostics.jpg" alt="额度助手按需环境诊断" width="320"><br>
+  <strong>按需环境诊断</strong>
+</p>
 
 ### 如何更新或卸载
 
