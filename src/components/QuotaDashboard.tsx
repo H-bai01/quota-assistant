@@ -34,8 +34,6 @@ interface SummaryProps {
 
 const labels = {
   "zh-CN": {
-    title: "Codex + Claude",
-    subtitle: "双服务额度总览",
     refresh: "刷新额度",
     collapse: "恢复悬停展开",
     keepExpanded: "保持常态展开",
@@ -64,8 +62,6 @@ const labels = {
     credits: (count: number) => `${count} 次`,
   },
   en: {
-    title: "Codex + Claude",
-    subtitle: "Dual-service quota overview",
     refresh: "Refresh quotas",
     collapse: "Expand on hover",
     keepExpanded: "Keep expanded",
@@ -338,7 +334,6 @@ export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscripti
       <div className="aurora" aria-hidden="true" />
       {notice ? <div className="operation-notice" role="status">{notice}</div> : null}
       <header className="overview-header">
-        <div><h1>{t.title}</h1><p>{t.subtitle}</p></div>
         {!preferences.locked ? (
           <nav className="overview-actions" aria-label="Quota controls" onMouseDown={buttonMouseDown}>
             <button type="button" onClick={onRefresh} aria-label={t.refresh} title={t.refresh}><ArrowClockwise /></button>

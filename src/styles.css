@@ -251,23 +251,19 @@ button { font: inherit; }
 }
 
 .overview-header {
-  min-height: 82px;
+  min-height: 46px;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   cursor: move;
 }
-.overview-header h1,
-.overview-header p,
 .service-identity h2,
 .service-identity p,
 .service-metric > span,
 .service-detail span,
 .service-detail strong,
 .service-detail small { margin: 0; }
-.overview-header h1 { font-size: 22px; font-weight: 720; letter-spacing: .045em; }
-.overview-header p { margin-top: 7px; font-size: 17px; font-weight: 620; letter-spacing: .09em; }
 .overview-actions { display: flex; align-items: center; gap: 5px; }
 .overview-actions button {
   width: 34px;

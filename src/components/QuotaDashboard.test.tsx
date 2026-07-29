@@ -95,6 +95,18 @@ describe("QuotaOverview click-through lock", () => {
     expect(button.getAttribute("title")).toBe("Lock click-through");
   });
 
+  it.each([
+    ["zh-CN", "Codex + Claude", "双服务额度总览", "刷新额度", "获取订阅信息"],
+    ["en", "Codex + Claude", "Dual-service quota overview", "Refresh quotas", "Get subscription info"],
+  ] as const)("omits the fixed service heading in %s while preserving the controls", (language, title, subtitle, refresh, subscriptionRefresh) => {
+    renderOverview(language);
+    expect(screen.queryByText(title)).toBeNull();
+    expect(screen.queryByText(subtitle)).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Quota controls" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: refresh })).toBeTruthy();
+    expect(screen.getByRole("button", { name: subscriptionRefresh })).toBeTruthy();
+  });
+
   it("uses a fully English renewal date while preserving a Chinese source label", () => {
     renderOverview("en", vi.fn(), [{
       provider: "codex",
