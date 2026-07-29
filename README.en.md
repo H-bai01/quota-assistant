@@ -17,11 +17,6 @@
 <p align="center">Quota Assistant is growing into a general AI-tool monitor. The current version supports Codex and Claude.</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="Quota and subscription overview" width="320"><br>
-  <strong>Quota and subscription overview</strong>
-</p>
-
-<p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_windows_x64-setup.exe">Download Windows Beta</a></strong>
@@ -43,12 +38,26 @@
 - **Remaining quota:** Codex weekly quota and Claude five-hour/weekly quota.
 - **Reset time:** the next quota reset and available reset opportunities.
 - **Subscription cycle:** purchase source and renewal date, rechecked one day before renewal.
-- **Floating widget:** mini/expanded modes, drag, always-on-top, lock, and click-through.
 - **Menu bar/system tray:** show, hide, refresh, switch language, unlock, and quit.
+
+## Two display modes
+
+### Mini widget
+
+Designed to stay on the desktop for a quick view of the remaining Codex and Claude percentages. Select it to expand.
 
 <p align="center">
   <img src="docs/assets/macos-compact-real.jpg" alt="Quota Assistant Mini widget" width="180"><br>
   <strong>Mini widget</strong>
+</p>
+
+### Expanded overview
+
+Shows each service's quota, reset time or reset opportunities, and subscription renewal information.
+
+<p align="center">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="Quota Assistant expanded overview" width="320"><br>
+  <strong>Expanded overview</strong>
 </p>
 
 ## Platform status

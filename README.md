@@ -17,11 +17,6 @@
 <p align="center">额度助手正向通用 AI 工具监控发展；当前版本支持 Codex 与 Claude。</p>
 
 <p align="center">
-  <img src="docs/assets/macos-expanded-real.jpg" alt="额度与订阅总览" width="320"><br>
-  <strong>额度与订阅总览</strong>
-</p>
-
-<p align="center">
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_macos_universal.dmg">下载 macOS 版</a></strong>
   &nbsp;·&nbsp;
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.4/quota-assistant_0.2.4_windows_x64-setup.exe">下载 Windows Beta</a></strong>
@@ -43,12 +38,26 @@
 - **剩余额度**：当前支持 Codex 周额度，以及 Claude 5 小时与周额度。
 - **重置时间**：直接显示下一次额度恢复时间和可用重置机会。
 - **订阅周期**：展示购买来源、续期日期，并在到期前 1 天复核。
-- **桌面悬浮窗**：迷你/展开、拖动、置顶、锁定与鼠标穿透。
 - **菜单栏/托盘**：显示、隐藏、刷新、切换语言、解锁和退出。
+
+## 两种显示方式
+
+### 迷你浮窗
+
+适合常驻桌面，快速查看 Codex 与 Claude 的剩余比例；点击即可展开。
 
 <p align="center">
   <img src="docs/assets/macos-compact-real.jpg" alt="额度助手迷你浮窗" width="180"><br>
   <strong>迷你浮窗</strong>
+</p>
+
+### 展开总览
+
+展示每项服务的额度、重置时间或重置机会，以及订阅续期信息。
+
+<p align="center">
+  <img src="docs/assets/macos-expanded-real.jpg" alt="额度助手展开总览" width="320"><br>
+  <strong>展开总览</strong>
 </p>
 
 ## 平台状态
