@@ -100,6 +100,20 @@ describe("DiagnosticsView activation and localization", () => {
     expect(screen.getByText("future value")).toBeTruthy();
   });
 
+  it.each(["toString", "constructor", "__proto__"])("preserves the unknown prototype-like value %s verbatim", async (value) => {
+    bridge.getDiagnosticsReport.mockResolvedValueOnce({
+      version: "0.2.5",
+      generatedAt: "2026-07-30T00:00:00Z",
+      overallStatus: "warning",
+      items: [{ label: "claude fetch error", value, status: "warning" }],
+      rawText: "minimal report",
+    });
+    render(<DiagnosticsView />);
+    await waitFor(() => expect(bridge.handlers).not.toBeNull());
+    bridge.handlers?.onActivated();
+    expect(await screen.findByText(value)).toBeTruthy();
+  });
+
   it("falls back to Chinese when preferences cannot be read", async () => {
     bridge.getPreferences.mockRejectedValueOnce(new Error("preferences unavailable"));
     render(<DiagnosticsView />);

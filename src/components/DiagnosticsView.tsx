@@ -71,7 +71,9 @@ function translatedDiagnosticItem(label: string, value: string, language: Langua
   const commonValues = language === "zh-CN"
     ? { "signed out": "未登录", unavailable: "暂不可用", "subscription unavailable": "订阅信息暂不可用" }
     : { "signed out": "Signed out", unavailable: "Unavailable", "subscription unavailable": "Subscription unavailable" };
-  if (value in commonValues) return { label: translatedLabel, value: commonValues[value as keyof typeof commonValues] };
+  if (Object.prototype.hasOwnProperty.call(commonValues, value)) {
+    return { label: translatedLabel, value: commonValues[value as keyof typeof commonValues] };
+  }
   if (value !== "yes" && value !== "no") return { label: translatedLabel, value };
   const available = value === "yes";
   const valuesBySuffix = language === "zh-CN" ? {
