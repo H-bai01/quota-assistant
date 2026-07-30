@@ -56,6 +56,20 @@ describe("widget transitions", () => {
     });
   });
 
+  it("forwards an explicit manual diagnostic scope without inventing a failure", async () => {
+    const { openDiagnostics } = await import("./bridge");
+    await openDiagnostics([
+      { provider: "codex", errorCategory: "manual" },
+      { provider: "claude", errorCategory: "manual" },
+    ]);
+    expect(api.invoke).toHaveBeenCalledWith("open_diagnostics", {
+      targets: [
+        { provider: "codex", errorCategory: "manual" },
+        { provider: "claude", errorCategory: "manual" },
+      ],
+    });
+  });
+
   it("starts a widget drag through the combined native command", async () => {
     vi.useFakeTimers();
     const { startDragging } = await import("./bridge");

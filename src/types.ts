@@ -43,7 +43,7 @@ export interface SubscriptionLoginEnded {
   outcome: "success" | "cancelled" | "failed";
 }
 
-export type DiagnosticErrorCategory = "signed_out" | "unavailable" | "subscription_unavailable";
+export type DiagnosticErrorCategory = "manual" | "signed_out" | "unavailable" | "subscription_unavailable";
 
 export interface DiagnosticTarget {
   provider: ProviderId;

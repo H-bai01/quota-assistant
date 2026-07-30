@@ -125,8 +125,8 @@ describe("App diagnostics consent", () => {
     expect(bridge.openDiagnostics).not.toHaveBeenCalled();
     fireEvent.click(button);
     expect(bridge.openDiagnostics).toHaveBeenCalledWith([
-      { provider: "codex", errorCategory: "unavailable" },
-      { provider: "claude", errorCategory: "unavailable" },
+      { provider: "codex", errorCategory: "manual" },
+      { provider: "claude", errorCategory: "manual" },
     ]);
   });
 

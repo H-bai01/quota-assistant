@@ -144,7 +144,7 @@ fn home() -> Option<PathBuf> {
 
 fn validate_targets(targets: Vec<DiagnosticTarget>) -> Result<Vec<DiagnosticTarget>, String> {
     if targets.is_empty() {
-        return Err("at least one failed provider is required".into());
+        return Err("at least one diagnostics provider is required".into());
     }
     let mut seen = HashSet::new();
     let mut validated = Vec::new();
@@ -154,7 +154,7 @@ fn validate_targets(targets: Vec<DiagnosticTarget>) -> Result<Vec<DiagnosticTarg
         }
         if !matches!(
             target.error_category.as_str(),
-            "signed_out" | "unavailable" | "subscription_unavailable"
+            "manual" | "signed_out" | "unavailable" | "subscription_unavailable"
         ) {
             return Err("unsupported diagnostics error category".into());
         }
@@ -322,8 +322,11 @@ fn item(label: String, available: bool) -> DiagnosticItem {
     }
 }
 
-fn error_item(provider: &str, category: &str) -> DiagnosticItem {
-    DiagnosticItem {
+fn error_item(provider: &str, category: &str) -> Option<DiagnosticItem> {
+    if category == "manual" {
+        return None;
+    }
+    Some(DiagnosticItem {
         label: format!("{provider} fetch error"),
         value: match category {
             "signed_out" => "signed out",
@@ -332,7 +335,7 @@ fn error_item(provider: &str, category: &str) -> DiagnosticItem {
         }
         .into(),
         status: "warning".into(),
-    }
+    })
 }
 
 fn report_text(version: &str, generated_at: &str, items: &[DiagnosticItem]) -> String {
@@ -413,7 +416,9 @@ pub async fn get_diagnostics_report(
             program_files.as_deref(),
             program_files_x86.as_deref(),
         );
-        items.push(error_item(&target.provider, &target.error_category));
+        if let Some(error) = error_item(&target.provider, &target.error_category) {
+            items.push(error);
+        }
         items.push(item(
             format!("{} desktop application", target.provider),
             exists_any(&applications),
@@ -496,11 +501,12 @@ mod tests {
     }
 
     #[test]
-    fn validation_accepts_only_known_failed_providers() {
+    fn validation_accepts_only_known_diagnostics_targets() {
         assert_eq!(
             validate_targets(vec![target("codex", "signed_out")]).unwrap(),
             vec![target("codex", "signed_out")]
         );
+        assert!(validate_targets(vec![target("codex", "manual")]).is_ok());
         assert!(validate_targets(vec![target("claude", "subscription_unavailable")]).is_ok());
         assert!(validate_targets(vec![target("other", "unavailable")]).is_err());
         assert!(validate_targets(vec![target("claude", "raw_server_error")]).is_err());
@@ -544,7 +550,7 @@ mod tests {
     #[test]
     fn report_contains_only_standardized_non_sensitive_values() {
         let items = vec![
-            error_item("claude", "signed_out"),
+            error_item("claude", "signed_out").unwrap(),
             item("claude local data directory readable".into(), true),
         ];
         let report = report_text("0.2.3", "2026-07-29T00:00:00Z", &items);
@@ -552,6 +558,23 @@ mod tests {
         for forbidden in ["auth.json", "token", "cookie", "password", "/users/test"] {
             assert!(!report.to_ascii_lowercase().contains(forbidden));
         }
+    }
+
+    #[test]
+    fn manual_report_omits_pseudo_fetch_errors_while_failures_keep_them() {
+        let manual_items = error_item("codex", "manual")
+            .into_iter()
+            .collect::<Vec<_>>();
+        let manual_report = report_text("0.2.5", "2026-07-30T00:00:00Z", &manual_items);
+        assert!(!manual_report.contains("fetch error"));
+        assert!(!manual_report.contains("unavailable"));
+
+        let failed_items = error_item("claude", "signed_out")
+            .into_iter()
+            .collect::<Vec<_>>();
+        let failed_report = report_text("0.2.5", "2026-07-30T00:00:00Z", &failed_items);
+        assert!(failed_report.contains("claude fetch error"));
+        assert!(failed_report.contains("signed out"));
     }
 
     #[test]

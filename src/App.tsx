@@ -21,8 +21,8 @@ function diagnosticTargetKey(targets: DiagnosticTarget[]): string {
 
 function requestedDiagnosticTargets(targets: DiagnosticTarget[]): DiagnosticTarget[] {
   const requested = targets.length > 0 ? targets : [
-    { provider: "codex", errorCategory: "unavailable" },
-    { provider: "claude", errorCategory: "unavailable" },
+    { provider: "codex", errorCategory: "manual" },
+    { provider: "claude", errorCategory: "manual" },
   ] satisfies DiagnosticTarget[];
   const providers = new Set<ProviderId>();
   return requested.filter((target) => {
