@@ -119,6 +119,17 @@ describe("App diagnostics consent", () => {
     expect(screen.queryByRole("button", { name: "开启诊断" })).toBeNull();
   });
 
+  it("opens a manual two-service diagnostic only after the user clicks the top control", async () => {
+    await openExpandedOverview();
+    const button = screen.getByRole("button", { name: "环境诊断" });
+    expect(bridge.openDiagnostics).not.toHaveBeenCalled();
+    fireEvent.click(button);
+    expect(bridge.openDiagnostics).toHaveBeenCalledWith([
+      { provider: "codex", errorCategory: "unavailable" },
+      { provider: "claude", errorCategory: "unavailable" },
+    ]);
+  });
+
   it("does not offer diagnostics for stale snapshots that still contain usable data", async () => {
     bridge.fetchSnapshots.mockResolvedValue(snapshots.map((item) => ({
       ...item,
@@ -174,6 +185,32 @@ describe("App diagnostics consent", () => {
     fireEvent.click(enable);
     expect(bridge.openDiagnostics).toHaveBeenCalledWith([
       { provider: "claude", errorCategory: "subscription_unavailable" },
+    ]);
+  });
+
+  it("prioritizes an existing failure target and removes duplicate providers", async () => {
+    bridge.fetchSnapshots.mockResolvedValue(snapshots.map((item) => item.provider === "claude"
+      ? { ...item, status: "signed_out", message: "Sign-in required" }
+      : item));
+    bridge.refreshSubscriptions.mockResolvedValue([{
+      provider: "claude",
+      displayName: "CLAUDE",
+      plan: null,
+      billingSource: "unknown",
+      cycle: null,
+      renewsAt: null,
+      renewalLabel: null,
+      remainingDays: null,
+      status: "unavailable",
+      message: "Subscription unavailable",
+      updatedAt: "2026-07-29T00:00:00Z",
+    }]);
+    await openExpandedOverview();
+    fireEvent.click(screen.getByRole("button", { name: "获取订阅信息" }));
+    await screen.findByRole("button", { name: "开启诊断" });
+    fireEvent.click(screen.getByRole("button", { name: "环境诊断" }));
+    expect(bridge.openDiagnostics).toHaveBeenCalledWith([
+      { provider: "claude", errorCategory: "signed_out" },
     ]);
   });
 });

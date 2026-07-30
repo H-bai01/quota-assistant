@@ -1,4 +1,4 @@
-import { ArrowClockwise, CalendarCheck, LockSimple, PushPin, PushPinSlash, Square } from "@phosphor-icons/react";
+import { ArrowClockwise, CalendarCheck, LockSimple, PushPin, PushPinSlash, Square, Stethoscope } from "@phosphor-icons/react";
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import claudeIcon from "../../claude.png";
 import codexIcon from "../../Codex.png";
@@ -18,6 +18,7 @@ interface DashboardProps {
   onToggleLanguage: () => void;
   onToggleAlwaysOnTop: () => void;
   onLockClickThrough: () => void;
+  onOpenDiagnostics: () => void;
   onConnectClaude: () => void;
   subscriptionBusy: boolean;
   notice?: ReactNode;
@@ -34,6 +35,7 @@ interface SummaryProps {
 
 const labels = {
   "zh-CN": {
+    diagnostics: "环境诊断",
     refresh: "刷新额度",
     collapse: "恢复悬停展开",
     keepExpanded: "保持常态展开",
@@ -62,6 +64,7 @@ const labels = {
     credits: (count: number) => `${count} 次`,
   },
   en: {
+    diagnostics: "Environment diagnostics",
     refresh: "Refresh quotas",
     collapse: "Expand on hover",
     keepExpanded: "Keep expanded",
@@ -319,7 +322,7 @@ function ClaudePanel({ snapshot, subscription, language, onConnect, onSubscripti
   );
 }
 
-export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscriptions, preferences, onDrag, onHover, onRefresh, onRefreshSubscriptions, onOpenSubscriptionLogin, onToggleStayExpanded, onToggleLanguage, onToggleAlwaysOnTop, onLockClickThrough, onConnectClaude, subscriptionBusy, notice = null }: DashboardProps) {
+export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscriptions, preferences, onDrag, onHover, onRefresh, onRefreshSubscriptions, onOpenSubscriptionLogin, onToggleStayExpanded, onToggleLanguage, onToggleAlwaysOnTop, onLockClickThrough, onOpenDiagnostics, onConnectClaude, subscriptionBusy, notice = null }: DashboardProps) {
   const language = preferences.language;
   const t = labels[language];
   const buttonMouseDown = (event: React.MouseEvent) => event.stopPropagation();
@@ -336,6 +339,7 @@ export const QuotaOverview = memo(function QuotaOverview({ snapshots, subscripti
       <header className="overview-header">
         {!preferences.locked ? (
           <nav className="overview-actions" aria-label="Quota controls" onMouseDown={buttonMouseDown}>
+            <button type="button" onClick={onOpenDiagnostics} aria-label={t.diagnostics} title={t.diagnostics}><Stethoscope /></button>
             <button type="button" onClick={onRefresh} aria-label={t.refresh} title={t.refresh}><ArrowClockwise /></button>
             <button type="button" className={subscriptionBusy ? "is-busy" : ""} onClick={onRefreshSubscriptions} disabled={subscriptionBusy} aria-label={t.subscriptionRefresh} title={t.subscriptionRefresh}><CalendarCheck /></button>
             <button type="button" className={preferences.stayExpanded ? "is-active" : ""} onClick={onToggleStayExpanded} aria-pressed={preferences.stayExpanded} aria-label={preferences.stayExpanded ? t.collapse : t.keepExpanded} title={preferences.stayExpanded ? t.collapse : t.keepExpanded}><Square weight={preferences.stayExpanded ? "fill" : "regular"} /></button>

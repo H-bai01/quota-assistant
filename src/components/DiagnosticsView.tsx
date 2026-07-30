@@ -73,14 +73,14 @@ export function DiagnosticsView() {
           }}><X /></button>
         </div>
       </header>
-      <p className="diagnostics-intro">只检查本次失败服务的应用、运行状态、本地数据目录可读性和官方端点连通性。不会读取或复制令牌、密码、Cookie 或文件内容。</p>
+      <p className="diagnostics-intro">只检查所选服务的应用、运行状态、本地数据目录可读性和官方端点连通性。不会读取或复制令牌、密码、Cookie 或文件内容。</p>
       <section className="diagnostics-list" aria-live="polite">
         {report ? report.items.map((item) => (
           <div className="diagnostics-row" key={item.label}>
             <span>{item.label}</span>
             <strong className={`diagnostics-value diagnostics-value--${item.status}`}>{item.value === "yes" ? "已检测到" : item.value === "no" ? "未检测到" : item.value}</strong>
           </div>
-        )) : <p className="diagnostics-loading">{active ? "正在进行最小检查…" : "诊断默认关闭，请从抓取失败提示中主动开启。"}</p>}
+        )) : <p className="diagnostics-loading">{active ? "正在进行最小检查…" : "诊断默认关闭，请从额度助手中主动打开。"}</p>}
       </section>
       <div className="diagnostics-actions">
         <button type="button" onClick={refresh} disabled={!active}><ArrowClockwise />重新检查</button>

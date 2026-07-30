@@ -52,8 +52,8 @@ describe("QuotaSummary interactions", () => {
   });
 });
 
-describe("QuotaOverview click-through lock", () => {
-  function renderOverview(language: Language, onLockClickThrough = vi.fn(), subscriptions: SubscriptionSnapshot[] = []) {
+describe("QuotaOverview controls", () => {
+  function renderOverview(language: Language, onLockClickThrough = vi.fn(), subscriptions: SubscriptionSnapshot[] = [], onOpenDiagnostics = vi.fn()) {
     const preferences: WidgetPreferences = {
       locked: false,
       alwaysOnTop: true,
@@ -75,6 +75,7 @@ describe("QuotaOverview click-through lock", () => {
       onToggleLanguage={vi.fn()}
       onToggleAlwaysOnTop={vi.fn()}
       onLockClickThrough={onLockClickThrough}
+      onOpenDiagnostics={onOpenDiagnostics}
       onConnectClaude={vi.fn()}
       subscriptionBusy={false}
     />);
@@ -93,6 +94,20 @@ describe("QuotaOverview click-through lock", () => {
     renderOverview("en");
     const button = screen.getByRole("button", { name: "Lock click-through" });
     expect(button.getAttribute("title")).toBe("Lock click-through");
+  });
+
+  it.each([
+    ["zh-CN", "环境诊断"],
+    ["en", "Environment diagnostics"],
+  ] as const)("shows diagnostics as the first always-visible control in %s", (language, label) => {
+    const onOpenDiagnostics = vi.fn();
+    renderOverview(language, vi.fn(), [], onOpenDiagnostics);
+    const navigation = screen.getByRole("navigation", { name: "Quota controls" });
+    const button = screen.getByRole("button", { name: label });
+    expect(button.getAttribute("title")).toBe(label);
+    expect(navigation.querySelector("button")).toBe(button);
+    fireEvent.click(button);
+    expect(onOpenDiagnostics).toHaveBeenCalledTimes(1);
   });
 
   it.each([

@@ -19,6 +19,19 @@ function diagnosticTargetKey(targets: DiagnosticTarget[]): string {
   return targets.map((target) => `${target.provider}:${target.errorCategory}`).sort().join("|");
 }
 
+function requestedDiagnosticTargets(targets: DiagnosticTarget[]): DiagnosticTarget[] {
+  const requested = targets.length > 0 ? targets : [
+    { provider: "codex", errorCategory: "unavailable" },
+    { provider: "claude", errorCategory: "unavailable" },
+  ] satisfies DiagnosticTarget[];
+  const providers = new Set<ProviderId>();
+  return requested.filter((target) => {
+    if (providers.has(target.provider)) return false;
+    providers.add(target.provider);
+    return true;
+  });
+}
+
 export default function App() {
   const [snapshots, setSnapshots] = useState<ProviderSnapshot[]>([]);
   const [preferences, setPreferences] = useState(DEFAULT_PREFS);
@@ -280,6 +293,14 @@ export default function App() {
     void setWidgetExpanded(true).catch(() => setOperationError("Widget expand failed."));
   }, [preferences.stayExpanded]);
 
+  const handleOpenDiagnostics = useCallback(() => {
+    setOperationError(null);
+    const targets = requestedDiagnosticTargets(diagnosticOffer);
+    void openDiagnostics(targets)
+      .then(() => setDiagnosticOffer([]))
+      .catch(() => setOperationError(t.diagnosticsOpenFailed));
+  }, [diagnosticOffer, t.diagnosticsOpenFailed]);
+
   if (snapshots.length === 0) return <div className="loading-card" aria-label={t.loadingQuota}><span /><span /><span /></div>;
 
   if (compact) {
@@ -291,10 +312,7 @@ export default function App() {
       <span>{t.diagnosticsOffer}</span>
       <span className="diagnostics-offer-actions" onMouseDown={(event) => event.stopPropagation()}>
         <button type="button" onClick={() => {
-          setOperationError(null);
-          void openDiagnostics(diagnosticOffer)
-            .then(() => setDiagnosticOffer([]))
-            .catch(() => setOperationError(t.diagnosticsOpenFailed));
+          handleOpenDiagnostics();
         }}>{t.diagnosticsEnable}</button>
         <button type="button" onClick={() => {
           dismissedDiagnostic.current = diagnosticTargetKey(diagnosticOffer);
@@ -314,6 +332,7 @@ export default function App() {
       onToggleLanguage={() => savePreferences({ ...preferences, language: nextLanguage(language) })}
       onToggleAlwaysOnTop={() => { setOperationError(null); void setAlwaysOnTop(!preferences.alwaysOnTop).then((value) => setPreferences({ ...DEFAULT_PREFS, ...value, language: normalizeLanguage(value.language) })).catch(() => setOperationError("Always-on-top toggle failed.")); }}
       onLockClickThrough={lockClickThrough}
+      onOpenDiagnostics={handleOpenDiagnostics}
       onDrag={() => startDragging()}
       onHover={handleHover}
       onRefresh={() => refresh(true)}

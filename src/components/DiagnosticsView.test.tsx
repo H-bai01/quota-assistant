@@ -39,7 +39,8 @@ describe("DiagnosticsView activation", () => {
     render(<DiagnosticsView />);
     await waitFor(() => expect(bridge.listenDiagnosticsEvents).toHaveBeenCalledTimes(1));
     expect(bridge.getDiagnosticsReport).not.toHaveBeenCalled();
-    expect(screen.getByText("诊断默认关闭，请从抓取失败提示中主动开启。")).toBeTruthy();
+    expect(screen.getByText(/只检查所选服务的应用、运行状态/)).toBeTruthy();
+    expect(screen.getByText("诊断默认关闭，请从额度助手中主动打开。")).toBeTruthy();
   });
 
   it("runs one check only after activation and stops immediately when closed", async () => {
@@ -50,6 +51,6 @@ describe("DiagnosticsView activation", () => {
     await screen.findByText("claude desktop process");
     fireEvent.click(screen.getByRole("button", { name: "关闭诊断" }));
     expect(bridge.closeDiagnostics).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("诊断默认关闭，请从抓取失败提示中主动开启。")).toBeTruthy();
+    expect(screen.getByText("诊断默认关闭，请从额度助手中主动打开。")).toBeTruthy();
   });
 });
