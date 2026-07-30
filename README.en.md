@@ -85,7 +85,7 @@ Download the EXE and follow the installer. The current package is not Windows co
 - Quota and subscription summaries stay on this computer and do not contain passwords, verification codes, or login cookies.
 - No advertising, telemetry, or third-party tracking.
 - When sign-in is required, the app opens only official Codex, Claude, Apple, or Google pages.
-- Environment diagnostics are off by default and run only after a fetch failure with the user's explicit consent.
+- Environment diagnostics do not run by default. Users can open them from the **Environment diagnostics** button in the expanded view, and the app may also offer them after a data-fetch failure. Minimum checks run only after the user explicitly opens or approves diagnostics.
 
 See the [privacy notice](PRIVACY.md) and [security policy](SECURITY.md) for details.
 
@@ -101,7 +101,7 @@ Close the sign-in window and retry **Get subscription info**. If the session has
 
 ### How do I check a data-fetch failure?
 
-Environment diagnostics are off by default. The app runs only the minimum checks related to the current failure, and only after you agree.
+Environment diagnostics do not run by default. You can open them from the **Environment diagnostics** button at the top of the expanded view; after a data-fetch failure, the app may also ask whether to open them. Only the minimum checks for the selected services run, and only after you explicitly open or approve diagnostics.
 
 <p align="center">
   <img src="docs/assets/diagnostics.jpg" alt="Quota Assistant on-demand diagnostics" width="320"><br>
