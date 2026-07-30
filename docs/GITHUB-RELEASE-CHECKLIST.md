@@ -36,7 +36,7 @@
 ## 回退检查
 
 - [ ] 首个公共版本明确写“无上一公共回退点”。
-- [ ] 第二个公共版本起，上一 Release、安装包与校验文件仍可公开下载且校验通过。
+- [ ] 第二个公共版本起，上一 Release 的 DMG 与 EXE 仍可公开下载，并与 GitHub Release API 的 asset digest 校验通过。
 - [ ] 第二个公共版本起，所有声明为已验证支持的平台实际完成本次候选到上一正式版的降级恢复；Windows Beta 明确写未验证降级。
 - [ ] Release notes 写明可回退版本和数据兼容限制。
 
@@ -46,14 +46,15 @@
 - [ ] 手动运行 `Publish approved release`，完整输入候选、Windows Beta 确认和 macOS 实机证据。
 - [ ] 发布 job 核对候选 run、提交、版本、manifest、SHA、SBOM 和 attestation。
 - [ ] 最终发布提交是 Candidate 的后代，差异仅包含明确 allowlist 中的发布说明与治理文件。
-- [ ] 工作流自动生成 `release-gates.json` 与 `SHA256SUMS.txt`。
+- [ ] 工作流自动生成 `release-gates.json`、`SHA256SUMS.txt`、manifest 与 SBOM，并保存为保留 90 天的 Publish run Actions artifact。
+- [ ] GitHub Release 自有 assets 只包含 macOS DMG 与 Windows EXE；不得通配上传技术记录。GitHub 自动 Source code 项不计入自有 assets。
 - [ ] 只有一条 `gh release create` 创建一次 Release。
 - [ ] 不删除、不移动、不覆盖任何现有公开 tag 或 Release。
 
 ## 发布后
 
-- [ ] commit → tag → manifest → installer → SHA256SUMS → attestation 一致。
-- [ ] 匿名公开下载所有附件成功。
-- [ ] 在全新环境重新校验 `SHA256SUMS.txt`。
+- [ ] commit → tag → manifest → installer → 内部 SHA-256 → attestation 一致。
+- [ ] 匿名公开下载 DMG 与 EXE 成功。
+- [ ] GitHub Release API 的安装包 asset digest 与重新下载文件一致。
 - [ ] 对应平台公开附件再次完成冷启动。
 - [ ] 清理临时下载、挂载、测试安装和测试进程。

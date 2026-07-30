@@ -20,10 +20,8 @@
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_macos_universal.dmg">Download for macOS</a></strong>
   &nbsp;·&nbsp;
   <strong><a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/quota-assistant_0.2.5_windows_x64-setup.exe">Download Windows Beta</a></strong>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/H-bai01/quota-assistant/releases/download/v0.2.5/SHA256SUMS.txt">Verify SHA-256</a>
 </p>
-<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases/tag/v0.2.5">View v0.2.5 notes and all assets</a></p>
+<p align="center"><a href="https://github.com/H-bai01/quota-assistant/releases">View all Releases</a></p>
 
 > Installers are published under GitHub **Release assets**. The repository's **Packages** area is a different package service that this project does not use, so it is normal for it to be empty. Community builds are unsigned, so Gatekeeper or SmartScreen may ask you to confirm the source on first launch.
 
@@ -80,7 +78,7 @@ Windows Beta keeps automated build, SHA-256, manifest, SBOM, and attestation rec
 
 ### Windows Beta
 
-Download the EXE and follow the installer. The current package is not Windows code-signed, so SmartScreen may show an “Unknown publisher” message. Confirm the download came from this repository and verify it with `SHA256SUMS.txt` from the same version.
+Download the EXE and follow the installer. The current package is not Windows code-signed, so SmartScreen may show an “Unknown publisher” message. Confirm the download came from this repository's GitHub Releases.
 
 ## Data and privacy
 

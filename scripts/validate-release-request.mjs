@@ -138,9 +138,6 @@ if (notes) {
   for (const heading of requiredHeadings) {
     if (!visibleContent.includes(`## ${heading}`)) fail(`Release notes are missing required heading: ## ${heading}`);
   }
-  if (!visibleContent.includes("SHA256SUMS.txt") || !/SHA-?256/i.test(visibleContent)) {
-    fail("Release notes must explain SHA-256 verification with SHA256SUMS.txt");
-  }
   if (releaseTier === "community") {
     if (!visibleContent.includes("Release tier: GitHub community") || !/unsigned|未签名/i.test(visibleContent)) {
       fail("GitHub community release notes must prominently disclose unsigned packages");

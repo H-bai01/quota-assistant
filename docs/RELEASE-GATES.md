@@ -31,7 +31,7 @@
 
 证据可以保存在受访问控制的测试系统或去敏后的 GitHub Issue/构建记录中，但发布输入必须是可供审批人复核的 HTTPS URL。证据不得包含真实账号、令牌、Cookie、密码、验证码、邮件地址、用户目录或原始诊断数据。
 
-正式发布工作流把经审批的最小字段写入 `release-gates.json`，并将该文件作为 Release 附件。任一 SHA 不匹配、日期超过 30 天、URL 非 HTTPS、候选 run 失败或源提交不一致时，工作流关闭失败。
+正式发布工作流把经审批的最小字段写入 `release-gates.json`，并与 SHA-256、manifest、SBOM 一起保存在 Publish run 的技术记录 Actions artifact 中，不上传到面向普通用户的 Release 资源区。任一 SHA 不匹配、日期超过 30 天、URL 非 HTTPS、候选 run 失败或源提交不一致时，工作流关闭失败。
 
 Windows Beta 不伪造上述实机记录。其发布门记录必须包含：
 

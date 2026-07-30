@@ -57,6 +57,7 @@
     "scripts/validate-release-request.mjs",
     "scripts/verify-main-ci.mjs",
     "scripts/verify-main-ci.selftest.mjs",
+    "scripts/verify-previous-release-assets.mjs",
     "scripts/verify-release-candidate.mjs",
     "scripts/version.mjs",
     "src-tauri/Cargo.lock",

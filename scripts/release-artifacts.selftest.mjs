@@ -230,7 +230,69 @@ try {
     await fs.writeFile(file, `-->\n${text}`);
   }, /comment close has no matching open/, true);
 
-  console.log("Release artifact tests passed (Windows Beta record, generic Candidate ancestry, visible-content parsing, contradictory-claim rejection, and artifact integrity checks).");
+  const previousTag = "v0.2.5";
+  const previousVersion = previousTag.slice(1);
+  const previousDirectory = path.join(temporaryRoot, "previous-release");
+  const previousMetadataPath = path.join(temporaryRoot, "previous-release.json");
+  await fs.mkdir(previousDirectory);
+  const previousBodies = {
+    [`quota-assistant_${previousVersion}_macos_universal.dmg`]: "synthetic previous macOS installer",
+    [`quota-assistant_${previousVersion}_windows_x64-setup.exe`]: "synthetic previous Windows installer",
+  };
+  for (const [name, body] of Object.entries(previousBodies)) {
+    await fs.writeFile(path.join(previousDirectory, name), body);
+  }
+  const previousMetadata = {
+    tag_name: previousTag,
+    draft: false,
+    prerelease: false,
+    assets: [
+      ...Object.entries(previousBodies).map(([name, body]) => ({
+        name,
+        state: "uploaded",
+        size: Buffer.byteLength(body),
+        digest: `sha256:${sha256(body)}`,
+      })),
+      {
+        name: "SHA256SUMS.txt",
+        state: "uploaded",
+        size: 12,
+        digest: `sha256:${"a".repeat(64)}`,
+      },
+    ],
+  };
+  const previousArgs = [
+    "scripts/verify-previous-release-assets.mjs",
+    "--metadata", previousMetadataPath,
+    "--directory", previousDirectory,
+    "--tag", previousTag,
+  ];
+  await fs.writeFile(previousMetadataPath, JSON.stringify(previousMetadata));
+  const previousSuccess = spawnSync(process.execPath, previousArgs, { cwd: root, encoding: "utf8" });
+  assert.equal(previousSuccess.status, 0, previousSuccess.stderr);
+
+  const missingDigestMetadata = structuredClone(previousMetadata);
+  delete missingDigestMetadata.assets[0].digest;
+  await fs.writeFile(previousMetadataPath, JSON.stringify(missingDigestMetadata));
+  const missingDigest = spawnSync(process.execPath, previousArgs, { cwd: root, encoding: "utf8" });
+  assert.notEqual(missingDigest.status, 0, "Previous installer without an API digest unexpectedly passed");
+  assert.match(missingDigest.stderr, /missing a valid SHA-256 asset digest/i);
+
+  const duplicateMetadata = structuredClone(previousMetadata);
+  duplicateMetadata.assets.push(structuredClone(duplicateMetadata.assets[0]));
+  await fs.writeFile(previousMetadataPath, JSON.stringify(duplicateMetadata));
+  const duplicate = spawnSync(process.execPath, previousArgs, { cwd: root, encoding: "utf8" });
+  assert.notEqual(duplicate.status, 0, "Duplicate previous installer metadata unexpectedly passed");
+  assert.match(duplicate.stderr, /duplicate asset metadata/i);
+
+  await fs.writeFile(previousMetadataPath, JSON.stringify(previousMetadata));
+  const previousDmg = path.join(previousDirectory, `quota-assistant_${previousVersion}_macos_universal.dmg`);
+  await fs.writeFile(previousDmg, "tampered previous macOS installer");
+  const tampered = spawnSync(process.execPath, previousArgs, { cwd: root, encoding: "utf8" });
+  assert.notEqual(tampered.status, 0, "Tampered previous installer unexpectedly passed");
+  assert.match(tampered.stderr, /does not match API (?:size|asset digest)/i);
+
+  console.log("Release artifact tests passed (Candidate integrity, Windows Beta boundaries, and previous public installer API-digest verification).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

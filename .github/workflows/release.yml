@@ -145,13 +145,19 @@ jobs:
           if test "$VERSION" = "0.2.1"; then
             test "$PREVIOUS_RELEASE_TAG" = "none"
           else
-            test "$(gh release view "$PREVIOUS_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = "false"
+            PREVIOUS_VERSION="${PREVIOUS_RELEASE_TAG#v}"
+            gh api --method GET "repos/$GITHUB_REPOSITORY/releases/tags/$PREVIOUS_RELEASE_TAG" \
+              > "$RUNNER_TEMP/previous-release.json"
             mkdir previous-release
-            gh release download "$PREVIOUS_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir previous-release
-            test -f previous-release/SHA256SUMS.txt
-            test -n "$(find previous-release -maxdepth 1 -type f \( -name '*.exe' -o -name '*.dmg' \) -print -quit)"
-            cd previous-release
-            sha256sum --check SHA256SUMS.txt
+            gh release download "$PREVIOUS_RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --dir previous-release \
+              --pattern "quota-assistant_${PREVIOUS_VERSION}_macos_universal.dmg" \
+              --pattern "quota-assistant_${PREVIOUS_VERSION}_windows_x64-setup.exe"
+            node scripts/verify-previous-release-assets.mjs \
+              --metadata "$RUNNER_TEMP/previous-release.json" \
+              --directory previous-release \
+              --tag "$PREVIOUS_RELEASE_TAG"
           fi
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -198,7 +204,18 @@ jobs:
               *.exe|*.dmg|*.cdx.json|*.manifest.json) gh attestation verify "$file" --repo "$GITHUB_REPOSITORY" ;;
             esac
           done
-      - name: Create exactly one immutable GitHub Release
+      - name: Preserve verified technical release records
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quota-assistant-v${{ inputs.version }}-release-records
+          path: |
+            release-assets/SHA256SUMS.txt
+            release-assets/release-gates.json
+            release-assets/*.manifest.json
+            release-assets/*.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Create exactly one GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
@@ -206,7 +223,8 @@ jobs:
           RELEASE_NOTES_PATH: ${{ inputs.release_notes_path }}
         run: >-
           gh release create "v$VERSION"
-          release-assets/*
+          release-assets/*.dmg
+          release-assets/*.exe
           --repo "$GITHUB_REPOSITORY"
           --target "$RELEASE_COMMIT"
           --title "额度助手 v$VERSION"

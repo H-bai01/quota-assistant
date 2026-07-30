@@ -144,6 +144,7 @@ for (const [name, text] of workflowTexts) {
 const combined = [...workflowTexts.values()].join("\n");
 if ((combined.match(/contents:\s*write/g) ?? []).length !== 1) fail("Exactly one job across all workflows must have contents: write");
 if ((combined.match(/gh release create/g) ?? []).length !== 1) fail("Exactly one release creation command is allowed across all workflows");
+if (/\bgh release upload\b/.test(combined)) fail("Separate GitHub Release asset uploads are prohibited");
 
 const release = workflowTexts.get("release.yml") ?? "";
 if (!release.includes("environment: production-release")) fail("release.yml must use the protected production-release environment");
@@ -165,6 +166,29 @@ if (!release.includes('gh api --method GET "repos/$GITHUB_REPOSITORY/actions/wor
   fail("release.yml must verify completed/success main CI for the exact release commit");
 }
 if (!release.includes("release_tier") || !release.includes("--release-tier")) fail("release.yml must select and enforce a release tier");
+const releaseCreateStart = release.indexOf('gh release create "v$VERSION"');
+const releaseCreateBlock = releaseCreateStart >= 0 ? release.slice(releaseCreateStart) : "";
+if (!releaseCreateBlock.includes("release-assets/*.dmg") || !releaseCreateBlock.includes("release-assets/*.exe")) {
+  fail("release.yml must upload the public DMG and EXE to GitHub Release assets");
+}
+if (/^\s*release-assets\/\*\s*$/m.test(releaseCreateBlock)
+  || /SHA256SUMS|release-gates|\.manifest\.json|\.cdx\.json/.test(releaseCreateBlock)) {
+  fail("release.yml GitHub Release creation must only upload DMG and EXE, never technical records or a broad wildcard");
+}
+const technicalRecordsStart = release.indexOf("- name: Preserve verified technical release records");
+const technicalRecordsBlock = technicalRecordsStart >= 0 && releaseCreateStart > technicalRecordsStart
+  ? release.slice(technicalRecordsStart, releaseCreateStart)
+  : "";
+for (const required of [
+  "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+  "release-assets/SHA256SUMS.txt",
+  "release-assets/release-gates.json",
+  "release-assets/*.manifest.json",
+  "release-assets/*.cdx.json",
+  "retention-days: 90",
+]) {
+  if (!technicalRecordsBlock.includes(required)) fail(`release.yml must preserve verified technical records in an Actions artifact: ${required}`);
+}
 const releaseRequestValidator = fs.readFileSync(path.join(root, "scripts/validate-release-request.mjs"), "utf8");
 if (extractNamedFunction(releaseRequestValidator, "rejectContradictoryWindowsClaims") !== rejectContradictoryWindowsClaims.toString()) {
   fail("Both release gates must use the exact same visible Windows Beta contradiction rule");
@@ -193,8 +217,17 @@ for (const validator of ["scripts/check-release-governance.mjs", "scripts/valida
     if (!validatorText.includes(required)) fail(`${validator} is missing visible Windows Beta claim validation: ${required}`);
   }
 }
-for (const rollbackGate of ["previous_release_tag", "gh release download", "sha256sum --check", "macos_rollback_evidence_url"]) {
+for (const rollbackGate of [
+  "previous_release_tag",
+  "releases/tags/$PREVIOUS_RELEASE_TAG",
+  "gh release download",
+  "verify-previous-release-assets.mjs",
+  "macos_rollback_evidence_url",
+]) {
   if (!release.includes(rollbackGate)) fail(`release.yml is missing rollback gate: ${rollbackGate}`);
+}
+if (/previous-release\/SHA256SUMS\.txt|sha256sum\s+--check/.test(release)) {
+  fail("release.yml previous-release verification must use GitHub API asset digests, not a public SHA256SUMS file");
 }
 for (const betaGate of [
   "release_commit",
@@ -358,9 +391,15 @@ for (const readmeName of readmes) {
     `quota-assistant_${packageVersion}_macos_universal.dmg`,
     `quota-assistant_${packageVersion}_windows_x64-setup.exe`,
     "https://github.com/H-bai01/quota-assistant/releases",
-    "SHA256SUMS.txt",
   ]) {
     if (!content.includes(required)) fail(`${readmeName}: missing release entry ${required}`);
+  }
+  if (visibleContent.includes("SHA256SUMS.txt") || /releases\/download\/[^\s"')]+\/SHA256SUMS\.txt/i.test(visibleContent)) {
+    fail(`${readmeName}: ordinary download instructions must not link or require SHA256SUMS.txt`);
+  }
+  const allReleasesLabel = readmeName === "README.md" ? "查看全部 Releases" : "View all Releases";
+  if (!visibleContent.includes(`href="https://github.com/H-bai01/quota-assistant/releases">${allReleasesLabel}</a>`)) {
+    fail(`${readmeName}: direct all-Releases entry is missing`);
   }
   if (!/未签名|unsigned/i.test(content) || !/Gatekeeper/.test(content) || !/SmartScreen/.test(content)) {
     fail(`${readmeName}: unsigned Gatekeeper and SmartScreen risks must be prominent and explicit`);

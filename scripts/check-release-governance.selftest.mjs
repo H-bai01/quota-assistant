@@ -71,6 +71,20 @@ try {
     await fs.appendFile(file, "\n# gh release create prohibited-second-publisher\n");
   }, /Exactly one release creation command/);
 
+  await expectRejected("release-uploads-technical-files", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    const text = await fs.readFile(file, "utf8");
+    await fs.writeFile(file, text.replace(
+      "          release-assets/*.dmg\n          release-assets/*.exe",
+      "          release-assets/*",
+    ));
+  }, /only upload DMG and EXE/);
+
+  await expectRejected("separate-release-asset-upload", async (directory) => {
+    const file = path.join(directory, ".github/workflows/release.yml");
+    await fs.appendFile(file, "\n# gh release upload v0.0.0 release-assets/release-gates.json\n");
+  }, /Separate GitHub Release asset uploads are prohibited/);
+
   await expectRejected("missing-exact-main-ci-release-gate", async (directory) => {
     const file = path.join(directory, ".github/workflows/release.yml");
     const text = await fs.readFile(file, "utf8");
@@ -116,6 +130,11 @@ try {
   await expectRejected("readme-candidate-state", async (directory) => {
     await fs.appendFile(path.join(directory, "README.en.md"), "\nCandidate release pending.\n");
   }, /candidate or not-yet-released README wording/);
+
+  await expectRejected("readme-sha-download-link", async (directory) => {
+    const file = path.join(directory, "README.en.md");
+    await fs.appendFile(file, "\n<a href=\"https://github.com/H-bai01/quota-assistant/releases/download/v0.0.0/SHA256SUMS.txt\">Verify SHA-256</a>\n");
+  }, /must not link or require SHA256SUMS/);
 
   await expectRejected("readme-missing-windows-beta-disclosure", async (directory) => {
     const file = path.join(directory, "README.md");
@@ -269,7 +288,7 @@ try {
     await fs.writeFile(file, Buffer.concat([bytes.subarray(0, 2), exifSegment, bytes.subarray(2)]));
   }, /EXIF, editor, comment, or personal metadata/);
 
-  console.log("Release governance adversarial tests passed (39/39).");
+  console.log("Release governance adversarial tests passed (42/42).");
 } finally {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
