@@ -39,6 +39,6 @@
 | `docs/assets/macos-install-dmg.jpg` | `471e4e886762526af45b2dbe68d977145e8e38305cbfc8db30549bc8eea1bcef` | 本地 v0.2.2 Universal DMG 在真实 macOS Finder 中打开后的安装窗口；本轮仅清除元数据 | README macOS 安装说明 | 项目自有安装包界面截图，MIT |
 | `docs/assets/quota-renewal.jpg` | `3c297f9d818123e29cbc9e0d87deb1aba1835424314910defc7840bba35b75b6` | v0.2.2 同源前端文档模式，使用源码内演示额度与续期数据 | 双服务额度、重置和续期细节 | 项目界面截图；其中服务标识权利状态见上表 |
 | `docs/assets/claude-connect.jpg` | `594c4610b2f9a84397f7d30968f597c10cb3e763a823fb239f52727c8a191281` | v0.2.2 同源前端 `claude-connect` 演示状态 | Claude 首次连接入口 | 项目界面截图；其中服务标识权利状态见上表 |
-| `docs/assets/diagnostics.jpg` | `915f47d6d033a2d3956e0f413f8f6271178cd319c00291427c8f186eca9b5932` | 2026-07-29 基于 v0.2.4 精确源码提交 `6a828401861ae94775f62fe8823c3970aa92f888` 的真实 `DiagnosticsView` 组件和正式样式，在受控本地临时副本中注入不含用户或设备数据的确定性抓取失败状态；原始完整界面为 520×610，仅左右等量补中性背景生成 610×610 方图，未裁切、拉伸或重绘，且已移除 EXIF | README 按需环境诊断 | 项目自有界面截图，MIT |
+| `docs/assets/diagnostics.jpg` | `2a78ef3d0eb53d0d8d530a7ba0d738b2cd328167861a290b723e0f31e6bc9ce9` | 2026-07-30 从当前本机真实额度助手诊断窗口直接采集，Codex 与 Claude 共八项检查全部通过；原始完整窗口为 520×610，仅左右等量补中性背景生成 610×610 方图，无裁切、拉伸或重绘；已清除 EXIF，不含身份信息 | README 按需环境诊断 | 项目自有界面截图，MIT |
 
 系统托盘、Gatekeeper 和 Windows SmartScreen 资料只有在能够取得对应真实系统画面且完成隐私复核后才允许加入；不得用设计稿或其他平台画面冒充实机证据。
